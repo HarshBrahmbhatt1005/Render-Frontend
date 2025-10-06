@@ -3,7 +3,7 @@ import "./Form.css";
 import axios from "axios";
 
 const Form = () => {
-  const API = "https://render-backend-5sur.onrender.com"; // Your Render backend URL
+  const API = "https://render-backend-5sur.onrender.com"; // Your backend URL
 
   const [formData, setFormData] = useState({
     code: "",
@@ -23,6 +23,7 @@ const Form = () => {
     ref: "",
     sourceChannel: "",
     remark: "",
+    approvalStatus: "",
   });
 
   const [applications, setApplications] = useState([]);
@@ -34,8 +35,12 @@ const Form = () => {
     status: "",
   });
   const [refFilter, setRefFilter] = useState("");
+  const [importantChangeMsg, setImportantChangeMsg] = useState("");
+  const [resetApproval, setResetApproval] = useState(false);
 
-  // Fetch applications from backend
+  const importantFields = ["amount", "bank", "product"];
+
+  // Fetch all applications
   const fetchApplications = async () => {
     try {
       const res = await axios.get(`${API}/api/applications`);
@@ -50,12 +55,9 @@ const Form = () => {
   }, []);
 
   // Mask mobile numbers
-  const maskMobile = (mobile) => {
-    if (!mobile) return "";
-    return "XXXXXX" + mobile.slice(-4);
-  };
+  const maskMobile = (mobile) => (mobile ? "XXXXXX" + mobile.slice(-4) : "");
 
-  // Filter applications for listing
+  // Filtered applications
   const filteredApps = applications.filter((app) => {
     const appDate = new Date(app.loginDate);
     const from = filters.fromDate ? new Date(filters.fromDate) : null;
@@ -64,12 +66,12 @@ const Form = () => {
     if (from && appDate < from) return false;
     if (to && appDate > to) return false;
     if (filters.sales && app.sales !== filters.sales) return false;
-    if (filters.status && app.status !== filters.status) return false; // 🔹 Status filter
+    if (filters.status && app.status !== filters.status) return false;
 
     return true;
   });
 
-  // Handle form input changes
+  // Handle form input change
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -83,7 +85,7 @@ const Form = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Submit form (create or update)
+  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -97,26 +99,46 @@ const Form = () => {
       return;
     }
 
+    // Check important fields for editing
+    let resetApprovalLocal = false;
+    let changedFields = [];
+
+    if (editingId) {
+      const originalApp = applications.find((app) => app._id === editingId);
+      importantFields.forEach((field) => {
+        if (formData[field] !== originalApp[field]) {
+          resetApprovalLocal = true;
+          changedFields.push(field);
+        }
+      });
+    }
+
+    if (resetApprovalLocal) {
+      setResetApproval(true);
+      setImportantChangeMsg(
+        `⚠️ Important field changed (${changedFields.join(
+          ", "
+        )}), re-approval required.`
+      );
+    } else {
+      setResetApproval(false);
+      setImportantChangeMsg("");
+    }
+
     const finalData = {
       ...formData,
       code: formData.code === "Other" ? formData.otherCode : formData.code,
       product:
         formData.product === "Other" ? formData.otherProduct : formData.product,
       bank: formData.bank === "Other" ? formData.otherBank : formData.bank,
-      remark: formData.remark,
-      approvalStatus: "", // initially empty
+      approvalStatus: resetApprovalLocal ? "" : formData.approvalStatus,
     };
 
     try {
       if (editingId) {
-        // Update existing
-        await axios.put(
-          `(${API}/api/applications)/${editingId}`,
-          finalData
-        );
+        await axios.put(`${API}/api/applications/${editingId}`, finalData);
         alert("Application updated!");
       } else {
-        // Create new
         await axios.post(`${API}/api/applications`, finalData);
         alert("Application saved!");
       }
@@ -127,8 +149,10 @@ const Form = () => {
         mobile: "",
         email: "",
         product: "",
+        otherProduct: "",
         amount: "",
         bank: "",
+        otherBank: "",
         bankerName: "",
         status: "",
         loginDate: "",
@@ -136,8 +160,11 @@ const Form = () => {
         ref: "",
         sourceChannel: "",
         remark: "",
+        approvalStatus: "",
       });
       setEditingId(null);
+      setImportantChangeMsg("");
+      setResetApproval(false);
       fetchApplications();
     } catch (err) {
       console.error("Error saving application:", err);
@@ -147,26 +174,52 @@ const Form = () => {
 
   // Edit application
   const handleEdit = (app) => {
-    setFormData(app);
     setEditingId(app._id);
-    window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll to form
+    setFormData({ ...app, approvalStatus: "", status: app.status || "" });
+    setImportantChangeMsg("");
+    setResetApproval(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Download Excel (all applications)
-  const handleExcelDownload = async () => {
-    const enteredPassword = prompt("Enter download password:");
-
-    if (!enteredPassword) return;
+  // Approve / Reject functions
+  const handleApprove = async (id) => {
+    const password = prompt("Enter approval password:");
+    if (!password) return;
 
     try {
-      const response = await axios.get(
-        `${API}/api/export/excel`,
-        {
-          params: { password: enteredPassword },
-          responseType: "blob",
-        }
-      );
+      await axios.patch(`${API}/api/applications/${id}/approve`, { password });
+      alert("✅ Approved successfully!");
+      fetchApplications();
+    } catch (err) {
+      console.error(err);
+      alert("Approval failed. Wrong password or server error.");
+    }
+  };
 
+  const handleReject = async (id) => {
+    const password = prompt("Enter approval password:");
+    if (!password) return;
+
+    try {
+      await axios.patch(`${API}/api/applications/${id}/reject`, { password });
+      alert("❌ Rejected successfully!");
+      fetchApplications();
+    } catch (err) {
+      console.error(err);
+      alert("Rejection failed. Wrong password or server error.");
+    }
+  };
+
+  // Excel download
+  const handleExcelDownload = async () => {
+    const password = prompt("Enter download password:");
+    if (!password) return;
+
+    try {
+      const response = await axios.get(`${API}/api/export/excel`, {
+        params: { password },
+        responseType: "blob",
+      });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -179,25 +232,19 @@ const Form = () => {
     }
   };
 
-  // Download Excel filtered by sales
   const handleExportRef = async () => {
     if (!refFilter) {
       alert("Select a Sales to download Excel.");
       return;
     }
-
-    const enteredPassword = prompt(`Enter password for ${refFilter}:`);
-    if (!enteredPassword) return;
+    const password = prompt(`Enter password for ${refFilter}:`);
+    if (!password) return;
 
     try {
-      const response = await axios.get(
-       `${API}/api/export/excel`,
-        {
-          params: { password: enteredPassword, ref: refFilter },
-          responseType: "blob",
-        }
-      );
-
+      const response = await axios.get(`${API}/api/export/excel`, {
+        params: { password, ref: refFilter },
+        responseType: "blob",
+      });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -209,49 +256,7 @@ const Form = () => {
       alert("Export failed: " + (err.response?.data?.error || err.message));
     }
   };
-  // ✅ Approve Application
-  const handleApprove = async (id) => {
-    const password = prompt("Enter approval password:");
-    if (!password) return;
 
-    try {
-      await axios.patch(
-        `${API}/${id}/approve`,
-        { password }
-      );
-      alert("✅ Approved successfully!");
-      fetchApplications(); // list refresh ho jayegi
-    } catch (err) {
-      console.error("❌ Approval Error:", err);
-      alert("Approval failed. Wrong password or server error.");
-    }
-  };
-
-  // ✅ Reject Application
-  const handleReject = async (id) => {
-    const password = prompt("Enter approval password:");
-    if (!password) return;
-
-    try {
-      await axios.patch(`${API}/api/applications/${id}/reject`, {
-        password,
-      });
-      alert("❌ Rejected successfully!");
-      fetchApplications();
-    } catch (err) {
-      console.error("❌ Reject Error:", err);
-      alert("Rejection failed. Wrong password or server error.");
-    }
-  };
-
-  // POST a new application
-  axios
-    .post(`${API}/api/applications`, newApplicationData)
-    .then((res) => console.log("Submitted:", res.data))
-    .catch((err) => console.error(err));
-
-
-    axios.get(`${process.env.REACT_APP_API_URL}/api/applications`);
 
 
   return (
