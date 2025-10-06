@@ -241,6 +241,15 @@ const Form = () => {
       alert("Rejection failed. Wrong password or server error.");
     }
   };
+  const API = "https://render-backend-5sur.onrender.com"; // Your Render backend URL
+
+  // POST a new application
+  axios
+    .post(`${API}/api/applications`, newApplicationData)
+    .then((res) => console.log("Submitted:", res.data))
+    .catch((err) => console.error(err));
+    axios.get(`${process.env.REACT_APP_API_URL}/api/applications`);
+
 
   return (
     <div className="form-container">
