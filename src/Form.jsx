@@ -3,6 +3,8 @@ import "./Form.css";
 import axios from "axios";
 
 const Form = () => {
+  const API = "https://render-backend-5sur.onrender.com"; // Your Render backend URL
+
   const [formData, setFormData] = useState({
     code: "",
     otherCode: "",
@@ -36,7 +38,7 @@ const Form = () => {
   // Fetch applications from backend
   const fetchApplications = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/applications");
+      const res = await axios.get(`${API}/api/applications`);
       setApplications(res.data);
     } catch (err) {
       console.error("Error fetching applications:", err);
@@ -109,13 +111,13 @@ const Form = () => {
       if (editingId) {
         // Update existing
         await axios.put(
-          `http://localhost:5000/api/applications/${editingId}`,
+          `(${API}/api/applications)/${editingId}`,
           finalData
         );
         alert("Application updated!");
       } else {
         // Create new
-        await axios.post("http://localhost:5000/api/applications", finalData);
+        await axios.post(`${API}/api/applications`, finalData);
         alert("Application saved!");
       }
       setFormData({
@@ -158,7 +160,7 @@ const Form = () => {
 
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/export/excel",
+        `${API}/api/export/excel`,
         {
           params: { password: enteredPassword },
           responseType: "blob",
@@ -189,7 +191,7 @@ const Form = () => {
 
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/export/excel",
+       `${API}/api/export/excel`,
         {
           params: { password: enteredPassword, ref: refFilter },
           responseType: "blob",
@@ -214,7 +216,7 @@ const Form = () => {
 
     try {
       await axios.patch(
-        `http://localhost:5000/api/applications/${id}/approve`,
+        `${API}/${id}/approve`,
         { password }
       );
       alert("✅ Approved successfully!");
@@ -231,7 +233,7 @@ const Form = () => {
     if (!password) return;
 
     try {
-      await axios.patch(`http://localhost:5000/api/applications/${id}/reject`, {
+      await axios.patch(`${API}/api/applications/${id}/reject`, {
         password,
       });
       alert("❌ Rejected successfully!");
@@ -241,13 +243,14 @@ const Form = () => {
       alert("Rejection failed. Wrong password or server error.");
     }
   };
-  const API = "https://render-backend-5sur.onrender.com"; // Your Render backend URL
 
   // POST a new application
   axios
     .post(`${API}/api/applications`, newApplicationData)
     .then((res) => console.log("Submitted:", res.data))
     .catch((err) => console.error(err));
+
+
     axios.get(`${process.env.REACT_APP_API_URL}/api/applications`);
 
 
