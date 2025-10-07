@@ -136,7 +136,7 @@ const Form = () => {
 
     try {
       if (editingId) {
-        await axios.put(`${API}/api/applications/${editingId}`, finalData);
+        await axios.patch(`${API}/api/applications/${editingId}`, finalData);
         alert("Application updated!");
       } else {
         await axios.post(`${API}/api/applications`, finalData);
