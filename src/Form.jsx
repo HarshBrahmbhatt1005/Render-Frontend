@@ -638,6 +638,8 @@ const Form = () => {
                 display: "flex",
                 justifyContent: "center",
                 color: "blueviolet",
+                    fontSize: "24px",
+
               }}
             >
               {app.sales}
