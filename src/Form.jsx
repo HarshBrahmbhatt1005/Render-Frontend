@@ -695,11 +695,11 @@ const Form = () => {
       )}
 
       {/* ⚠️ Show red message only when important field changed */}
-      {app.approvalStatus === "" && (
+      {/* {app.approvalStatus === "" && (
         <p style={{ color: "red", fontSize: "12px", marginTop: "5px" }}>
           ⚠️ Important field changed — re-approval required.
         </p>
-      )}
+      )} */}
 
       {/* ✅ Approval / Reject Section */}
       {app.approvalStatus === "Approved by SB" ? (
