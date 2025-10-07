@@ -664,69 +664,82 @@ const Form = () => {
         </label>
       </div>
       <div className="card-container">
-  {[...filteredApps].reverse().map((app) => (
-    <div key={app._id} className="card">
-      <h2
-        style={{
-          margin: "5px auto",
-          display: "flex",
-          justifyContent: "center",
-          color: "blueviolet",
-          fontSize: "24px",
-        }}
-      >
-        {app.sales}
-      </h2>
-
-      <p className="list-p"><b>Cust Name:</b> {app.name}</p>
-      <p className="list-p"><b>Mobile:</b> {maskMobile(app.mobile)}</p>
-      <p className="list-p"><b>Ref:</b> {app.ref}</p>
-      <p className="list-p"><b>Source:</b> {app.sourceChannel}</p>
-      <p className="list-p"><b>Product:</b> {app.product}</p>
-      <p className="list-p"><b>Amount:</b> {app.amount}</p>
-      <p className="list-p"><b>Status:</b> {app.status}</p>
-      <p className="list-p"><b>Date:</b> {app.loginDate}</p>
-      <p className="list-p"><b>Remark:</b> {app.remark}</p>
-
-      {app.approvalStatus !== "Rejected by SB" && (
-        <button className="edit-btn" onClick={() => handleEdit(app)}>
-          ✏️ Edit
-        </button>
-      )}
-
-      {/* ⚠️ Show red message only when important field changed */}
-      {/* {app.approvalStatus === "" && (
-        <p style={{ color: "red", fontSize: "12px", marginTop: "5px" }}>
-          ⚠️ Important field changed — re-approval required.
-        </p>
-      )} */}
-
-      {/* ✅ Approval / Reject Section */}
-      {app.approvalStatus === "Approved by SB" ? (
-        <p style={{ color: "green", fontWeight: "bold" }}>✅ Approved by SB</p>
-      ) : app.approvalStatus === "Rejected by SB" ? (
-        <p style={{ color: "red", fontWeight: "bold" }}>❌ Rejected by SB</p>
-      ) : (
-        <div className="approval-buttons">
-          <button
-            className="approve-btn"
-            onClick={() => handleApprove(app._id)}
-          >
-            Approve
-          </button>
-          <button
-            className="reject-btn"
-            onClick={() => handleReject(app._id)}
-          >
-            Reject
-          </button>
-        </div>
-      )}
-    </div>
-  ))}
-</div>
-
+        {filteredApps.reverse().map((app) => (
+          <div key={app._id} className="card">
+            <h2
+              style={{
+                margin: "5px auto",
+                display: "flex",
+                justifyContent: "center",
+                color: "blueviolet",
+                fontSize: "24px",
+              }}
+            >
+              {app.sales}
+            </h2>
+            <p className="list-p">
+              <b>Cust Name:</b> {app.name}
+            </p>
+            <p className="list-p">
+              <b>Mobile:</b> {maskMobile(app.mobile)}
+            </p>
+            <p className="list-p">
+              <b>Ref:</b> {app.ref}
+            </p>
+            <p className="list-p">
+              <b>Source:</b> {app.sourceChannel}
+            </p>
+            <p className="list-p">
+              <b>Product:</b> {app.product}
+            </p>
+            <p className="list-p">
+              <b>Amount:</b> {app.amount}
+            </p>
+            <p className="list-p">
+              <b>Status:</b> {app.status}
+            </p>
+            <p className="list-p">
+              <b>Date:</b> {app.loginDate}
+            </p>
+            <p className="list-p">
+              <b>Remark:</b>
+              {app.remark}
+            </p>
+            {app.approvalStatus !== "Rejected by SB" && (
+              <button className="edit-btn" onClick={() => handleEdit(app)}>
+                ✏️ Edit
+              </button>
+            )}
+            {/* ✅ Approval / Reject Section */}
+            {app.approvalStatus === "Approved by SB" ? (
+              <p style={{ color: "green", fontWeight: "bold" }}>
+                ✅ Approved by SB
+              </p>
+            ) : app.approvalStatus === "Rejected by SB" ? (
+              <p style={{ color: "red", fontWeight: "bold" }}>
+                ❌ Rejected by SB
+              </p>
+            ) : (
+              <div className="approval-buttons">
+                <button
+                  className="approve-btn"
+                  onClick={() => handleApprove(app._id)}
+                >
+                  Approve
+                </button>
+                <button
+                  className="reject-btn"
+                  onClick={() => handleReject(app._id)}
+                >
+                  Reject
+                </button>
+              </div>
+            )}
           </div>
+        ))}
+      </div>
+      {/* Excel Downloads */}
+    </div>
   );
 };
 
