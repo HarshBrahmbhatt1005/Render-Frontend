@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./Form.css";
+import { FaCloudDownloadAlt } from "react-icons/fa";
 import axios from "axios";
 
 const Form = () => {
@@ -365,6 +366,7 @@ const Form = () => {
         {/* Banker Name */} <label>Banker Name</label>
         <input
           name="bankerName"
+          placeholder="Enter Banker Name"
           value={formData.bankerName}
           onChange={handleChange}
         ></input>
@@ -630,35 +632,44 @@ const Form = () => {
       <div className="card-container">
         {filteredApps.map((app) => (
           <div key={app._id} className="card">
-            <h2>{app.sales}</h2>
-            <p>
+            <h2
+              style={{
+                margin: "5px auto",
+                display: "flex",
+                justifyContent: "center",
+                color: "blueviolet",
+              }}
+            >
+              {app.sales}
+            </h2>
+            <p className="list-p">
               <b>Cust Name:</b> {app.name}
             </p>
-            <p>
+            <p className="list-p">
               <b>Mobile:</b> {maskMobile(app.mobile)}
             </p>
-            <p>
+            <p className="list-p">
               <b>Ref:</b> {app.ref}
             </p>
-            <p>
+            <p className="list-p">
               <b>Source:</b> {app.sourceChannel}
             </p>
-            <p>
+            <p className="list-p">
               <b>Product:</b> {app.product}
             </p>
-            <p>
+            <p className="list-p">
               <b>Amount:</b> {app.amount}
             </p>
-            <p>
+            <p className="list-p">
               <b>Status:</b> {app.status}
             </p>
-            <p>
+            <p className="list-p">
               <b>Date:</b> {app.loginDate}
             </p>
-            <p>
+            <p className="list-p">
               <b>Sales:</b> {app.sales}
             </p>
-            <p>
+            <p className="list-p">
               <b>Remark:</b>
               {app.remark}
             </p>
@@ -697,8 +708,10 @@ const Form = () => {
       </div>
       {/* Excel Downloads */}
       <button onClick={handleExcelDownload} className="download-btn">
-        📥 Download Admin Excel
+        <FaCloudDownloadAlt  />
+        Download Master Excel
       </button>
+
       <div className="sales-excel-download">
         <label className=".excel-label">Select Sales for Excel:</label>
         <select
@@ -722,7 +735,8 @@ const Form = () => {
           ))}
         </select>
         <button onClick={handleExportRef} className="download-btn ">
-          Download {refFilter || "Selected"} Excel
+                <FaCloudDownloadAlt/>
+  Download {refFilter || "Selected"} Excel
         </button>
       </div>
     </div>
