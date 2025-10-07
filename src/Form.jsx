@@ -91,10 +91,10 @@ const Form = () => {
     e.preventDefault();
 
     // Validation
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      alert("Please enter a valid email address.");
-      return;
-    }
+    // if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    //   alert("Please enter a valid email address.");
+    //   return;
+    // }
     if (formData.mobile && formData.mobile.length !== 10) {
       alert("Mobile number must be exactly 10 digits.");
       return;
@@ -567,7 +567,41 @@ const Form = () => {
         </button>
       </form>
       {/* Filters */}
-      <h2>Applications List</h2>
+      <button onClick={handleExcelDownload} className="download-btn">
+        <FaCloudDownloadAlt />
+        Download Master Excel
+      </button>
+
+      <div className="sales-excel-download">
+        <label className=".excel-label">Select Sales for Excel:</label>
+        <select
+          className="excel-select"
+          value={refFilter}
+          onChange={(e) => setRefFilter(e.target.value)}
+        >
+          <option value="">Select Sales</option>
+          {[
+            "Vinay Mishra",
+            "Robins Kapadia",
+            "Dharmesh Bhavsar",
+            "Hardik Bhavsar",
+            "Dhaval Kataria",
+            "Parag Shah",
+            "Anshul Purohit",
+          ].map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+        <button onClick={handleExportRef} className="download-btn ">
+          <FaCloudDownloadAlt />
+          Download {refFilter || "Selected"} Excel
+        </button>
+      </div>
+      <h2 style={{ display: "flex", justifyContent: "center" }}>
+        Applications List
+      </h2>
       <div className="filters">
         <label>
           From:
@@ -630,118 +664,69 @@ const Form = () => {
         </label>
       </div>
       <div className="card-container">
-        {filteredApps.reverse().map((app) => (
-          <div key={app._id} className="card">
-            <h2
-              style={{
-                margin: "5px auto",
-                display: "flex",
-                justifyContent: "center",
-                color: "blueviolet",
-                    fontSize: "24px",
+  {[...filteredApps].reverse().map((app) => (
+    <div key={app._id} className="card">
+      <h2
+        style={{
+          margin: "5px auto",
+          display: "flex",
+          justifyContent: "center",
+          color: "blueviolet",
+          fontSize: "24px",
+        }}
+      >
+        {app.sales}
+      </h2>
 
-              }}
-            >
-              {app.sales}
-            </h2>
-            <p className="list-p">
-              <b>Cust Name:</b> {app.name}
-            </p>
-            <p className="list-p">
-              <b>Mobile:</b> {maskMobile(app.mobile)}
-            </p>
-            <p className="list-p">
-              <b>Ref:</b> {app.ref}
-            </p>
-            <p className="list-p">
-              <b>Source:</b> {app.sourceChannel}
-            </p>
-            <p className="list-p">
-              <b>Product:</b> {app.product}
-            </p>
-            <p className="list-p">
-              <b>Amount:</b> {app.amount}
-            </p>
-            <p className="list-p">
-              <b>Status:</b> {app.status}
-            </p>
-            <p className="list-p">
-              <b>Date:</b> {app.loginDate}
-            </p>
-            <p className="list-p">
-              <b>Sales:</b> {app.sales}
-            </p>
-            <p className="list-p">
-              <b>Remark:</b>
-              {app.remark}
-            </p>
-            {app.approvalStatus !== "Rejected by SB" && (
-              <button className="edit-btn" onClick={() => handleEdit(app)}>
-                ✏️ Edit
-              </button>
-            )}
-            {/* ✅ Approval / Reject Section */}
-            {app.approvalStatus === "Approved by SB" ? (
-              <p style={{ color: "green", fontWeight: "bold" }}>
-                ✅ Approved by SB
-              </p>
-            ) : app.approvalStatus === "Rejected by SB" ? (
-              <p style={{ color: "red", fontWeight: "bold" }}>
-                ❌ Rejected by SB
-              </p>
-            ) : (
-              <div className="approval-buttons">
-                <button
-                  className="approve-btn"
-                  onClick={() => handleApprove(app._id)}
-                >
-                  Approve
-                </button>
-                <button
-                  className="reject-btn"
-                  onClick={() => handleReject(app._id)}
-                >
-                  Reject
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-      {/* Excel Downloads */}
-      <button onClick={handleExcelDownload} className="download-btn">
-        <FaCloudDownloadAlt  />
-        Download Master Excel
-      </button>
+      <p className="list-p"><b>Cust Name:</b> {app.name}</p>
+      <p className="list-p"><b>Mobile:</b> {maskMobile(app.mobile)}</p>
+      <p className="list-p"><b>Ref:</b> {app.ref}</p>
+      <p className="list-p"><b>Source:</b> {app.sourceChannel}</p>
+      <p className="list-p"><b>Product:</b> {app.product}</p>
+      <p className="list-p"><b>Amount:</b> {app.amount}</p>
+      <p className="list-p"><b>Status:</b> {app.status}</p>
+      <p className="list-p"><b>Date:</b> {app.loginDate}</p>
+      <p className="list-p"><b>Remark:</b> {app.remark}</p>
 
-      <div className="sales-excel-download">
-        <label className=".excel-label">Select Sales for Excel:</label>
-        <select
-          className="excel-select"
-          value={refFilter}
-          onChange={(e) => setRefFilter(e.target.value)}
-        >
-          <option value="">Select Sales</option>
-          {[
-            "Vinay Mishra",
-            "Robins Kapadia",
-            "Dharmesh Bhavsar",
-            "Hardik Bhavsar",
-            "Dhaval Kataria",
-            "Parag Shah",
-            "Anshul Purohit",
-          ].map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        <button onClick={handleExportRef} className="download-btn ">
-                <FaCloudDownloadAlt/>
-  Download {refFilter || "Selected"} Excel
+      {app.approvalStatus !== "Rejected by SB" && (
+        <button className="edit-btn" onClick={() => handleEdit(app)}>
+          ✏️ Edit
         </button>
-      </div>
+      )}
+
+      {/* ⚠️ Show red message only when important field changed */}
+      {app.approvalStatus === "" && (
+        <p style={{ color: "red", fontSize: "12px", marginTop: "5px" }}>
+          ⚠️ Important field changed — re-approval required.
+        </p>
+      )}
+
+      {/* ✅ Approval / Reject Section */}
+      {app.approvalStatus === "Approved by SB" ? (
+        <p style={{ color: "green", fontWeight: "bold" }}>✅ Approved by SB</p>
+      ) : app.approvalStatus === "Rejected by SB" ? (
+        <p style={{ color: "red", fontWeight: "bold" }}>❌ Rejected by SB</p>
+      ) : (
+        <div className="approval-buttons">
+          <button
+            className="approve-btn"
+            onClick={() => handleApprove(app._id)}
+          >
+            Approve
+          </button>
+          <button
+            className="reject-btn"
+            onClick={() => handleReject(app._id)}
+          >
+            Reject
+          </button>
+        </div>
+      )}
     </div>
+  ))}
+</div>
+
+          </div>
   );
 };
 

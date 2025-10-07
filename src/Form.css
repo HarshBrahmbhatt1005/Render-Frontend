@@ -111,8 +111,9 @@ form select:focus {
 }
 
 .filters {
-  /* width: 200px; */
+  width: 93%;
   display: flex;
+  justify-content: center;
   /* flex-direction: column; */
   flex-wrap: wrap;
   gap: 20px;
@@ -160,7 +161,13 @@ form select:focus {
   cursor: pointer;
   transition: background 0.3s;
 }
-
+.sales-excel-download{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+}
 .download-btn:hover {
   background-color: red;
 }
