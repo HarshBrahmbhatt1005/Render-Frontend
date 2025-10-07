@@ -257,8 +257,6 @@ const Form = () => {
     }
   };
 
-
-
   return (
     <div className="form-container">
       <h2 className="form-title">MIS Integration Form</h2>
@@ -613,19 +611,21 @@ const Form = () => {
             ))}
           </select>
         </label>
-        <label>Status:</label>
-        <select
-          value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-        >
-          <option value="">All</option>
-          <option value="Login">Login</option>
-          <option value="Sanction">Sanction</option>
-          <option value="Disbursed">Disbursed</option>
-          <option value="Part Disbursed">Part Disbursed</option>
-          <option value="Re-Login">Re-Login</option>
-          <option value="Rejected">Rejected</option>
-        </select>
+        <label>
+          Status:
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+          >
+            <option value="">All</option>
+            <option value="Login">Login</option>
+            <option value="Sanction">Sanction</option>
+            <option value="Disbursed">Disbursed</option>
+            <option value="Part Disbursed">Part Disbursed</option>
+            <option value="Re-Login">Re-Login</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </label>
       </div>
       <div className="card-container">
         {filteredApps.map((app) => (

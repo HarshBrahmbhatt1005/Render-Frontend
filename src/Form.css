@@ -111,7 +111,10 @@ form select:focus {
 }
 
 .filters {
+  /* width: 200px; */
   display: flex;
+  /* flex-direction: column; */
+  flex-wrap: wrap;
   gap: 20px;
   margin: 20px 0;
   padding: 15px;
