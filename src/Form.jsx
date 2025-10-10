@@ -3,10 +3,12 @@ import "./Form.css";
 import { FaCloudDownloadAlt } from "react-icons/fa";
 import axios from "axios";
 
-const Form = () => {
-  const API = "https://render-backend-5sur.onrender.com"; // Your backend URL
 
-  const [formData, setFormData] = useState({
+
+const Form = () => {
+  const API = "https://render-backend-5sur.onrender.com";
+
+  const initialFormData = {
     code: "",
     otherCode: "",
     name: "",
@@ -25,8 +27,18 @@ const Form = () => {
     sourceChannel: "",
     remark: "",
     approvalStatus: "",
-  });
+    payout: "",
+    expenceAmount: "",
+    feesRefundAmount: "",
+    propertyDetails: "",
+    mktValue: "",
+    roi: "",
+    processingFees: "",
+    auditData: "",
+    consulting: "",
+  };
 
+  const [formData, setFormData] = useState(initialFormData);
   const [applications, setApplications] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [filters, setFilters] = useState({
@@ -41,7 +53,29 @@ const Form = () => {
 
   const importantFields = ["amount", "bank", "product"];
 
-  // Fetch all applications
+  // =================== Helpers ===================
+  const getFieldValue = (field, otherField) => {
+    if (!field) return "";
+    return field === "Other" ? otherField || "" : field;
+  };
+
+  const maskMobile = (mobile) => {
+    if (!mobile) return "";
+    const mobileStr = String(mobile); // Ensure it's a string
+    return mobileStr.length >= 4
+      ? "XXXXXX" + mobileStr.slice(-4)
+      : mobileStr;
+  };
+
+  const finalFormData = () => ({
+    ...formData,
+    code: getFieldValue(formData.code, formData.otherCode),
+    product: getFieldValue(formData.product, formData.otherProduct),
+    bank: getFieldValue(formData.bank, formData.otherBank),
+    approvalStatus: resetApproval ? "" : formData.approvalStatus,
+  });
+
+  // =================== Fetch ===================
   const fetchApplications = async () => {
     try {
       const res = await axios.get(`${API}/api/applications`);
@@ -55,10 +89,6 @@ const Form = () => {
     fetchApplications();
   }, []);
 
-  // Mask mobile numbers
-  const maskMobile = (mobile) => (mobile ? "XXXXXX" + mobile.slice(-4) : "");
-
-  // Filtered applications
   const filteredApps = applications.filter((app) => {
     const appDate = new Date(app.loginDate);
     const from = filters.fromDate ? new Date(filters.fromDate) : null;
@@ -72,7 +102,7 @@ const Form = () => {
     return true;
   });
 
-  // Handle form input change
+  // =================== Handlers ===================
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -86,28 +116,21 @@ const Form = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
-    // if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-    //   alert("Please enter a valid email address.");
-    //   return;
-    // }
     if (formData.mobile && formData.mobile.length !== 10) {
       alert("Mobile number must be exactly 10 digits.");
       return;
     }
 
-    // Check important fields for editing
     let resetApprovalLocal = false;
     let changedFields = [];
 
     if (editingId) {
       const originalApp = applications.find((app) => app._id === editingId);
       importantFields.forEach((field) => {
-        if (formData[field] !== originalApp[field]) {
+        if (finalFormData()[field] !== originalApp[field]) {
           resetApprovalLocal = true;
           changedFields.push(field);
         }
@@ -126,43 +149,16 @@ const Form = () => {
       setImportantChangeMsg("");
     }
 
-    const finalData = {
-      ...formData,
-      code: formData.code === "Other" ? formData.otherCode : formData.code,
-      product:
-        formData.product === "Other" ? formData.otherProduct : formData.product,
-      bank: formData.bank === "Other" ? formData.otherBank : formData.bank,
-      approvalStatus: resetApprovalLocal ? "" : formData.approvalStatus,
-    };
-
     try {
       if (editingId) {
-        await axios.patch(`${API}/api/applications/${editingId}`, finalData);
+        await axios.patch(`${API}/api/applications/${editingId}`, finalFormData());
         alert("Application updated!");
       } else {
-        await axios.post(`${API}/api/applications`, finalData);
+        await axios.post(`${API}/api/applications`, finalFormData());
         alert("Application saved!");
       }
-      setFormData({
-        code: "",
-        otherCode: "",
-        name: "",
-        mobile: "",
-        email: "",
-        product: "",
-        otherProduct: "",
-        amount: "",
-        bank: "",
-        otherBank: "",
-        bankerName: "",
-        status: "",
-        loginDate: "",
-        sales: "",
-        ref: "",
-        sourceChannel: "",
-        remark: "",
-        approvalStatus: "",
-      });
+
+      setFormData(initialFormData);
       setEditingId(null);
       setImportantChangeMsg("");
       setResetApproval(false);
@@ -173,7 +169,6 @@ const Form = () => {
     }
   };
 
-  // Edit application
   const handleEdit = (app) => {
     setEditingId(app._id);
     setFormData({ ...app, approvalStatus: "", status: app.status || "" });
@@ -182,7 +177,6 @@ const Form = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Approve / Reject functions
   const handleApprove = async (id) => {
     const password = prompt("Enter approval password:");
     if (!password) return;
@@ -211,7 +205,6 @@ const Form = () => {
     }
   };
 
-  // Excel download
   const handleExcelDownload = async () => {
     const password = prompt("Enter download password:");
     if (!password) return;
@@ -262,13 +255,6 @@ const Form = () => {
     <div className="form-container">
       <h2 className="form-title">MIS Integration Form</h2>
       <form onSubmit={handleSubmit}>
-        {/* Code */} <label>Code</label>
-        <select name="code" value={formData.code} onChange={handleChange}>
-          <option value="">Select Code</option>
-          <option value="Sai Fakira">SAI FAKIRA</option>
-          <option value="Aadrika">AADRIKA</option>
-          <option value="Other">Other</option>
-        </select>
         {/* If "Other" selected, show input field */}
         {formData.code === "Other" && (
           <input
@@ -304,40 +290,120 @@ const Form = () => {
           value={formData.email}
           onChange={handleChange}
         />
-        {/* Product */} <label>Product</label>
-        <select name="product" value={formData.product} onChange={handleChange}>
-          <option value="">Select Product</option>
-          <option value="Home Loan">HL</option> <option value="LAP">LAP</option>
-          <option value="Top Up">TOP UP</option>
-          <option value="Cum Pur">CUM PUR</option>
-          <option value="HL Top Up">HL TOP UP</option>
-          <option value="Lap Top Up">LAP TOP UP</option>
-          <option value="LRD Pur">LRD PUR</option>
-          <option value="Land PUR">LAND PUR</option>
-          <option value="HL BT + TOP Up">HL BT + TOP UP</option>
-          <option value="PLOT + CONSTRUCTION">PLOT + CONSTRUCTION</option>
-          <option value="RESI LAP">RESI LAP</option>
+        {/* Sales */} <label>Sales</label>
+        <div className="radio-group">
+          <label>
+            <input
+              className="sales-radio"
+              type="radio"
+              name="sales"
+              value="Vinay Mishra"
+              checked={formData.sales === "Vinay Mishra"}
+              onChange={handleChange}
+            />
+            Vinay Mishra
+          </label>
+          <label>
+            <input
+              className="sales-radio"
+              type="radio"
+              name="sales"
+              value="Robins Kapadia"
+              checked={formData.sales === "Robins Kapadia"}
+              onChange={handleChange}
+            />
+            Robins Kapadia
+          </label>
+          <label>
+            <input
+              className="sales-radio"
+              type="radio"
+              name="sales"
+              value="Dharmesh Bhavsar"
+              checked={formData.sales === "Dharmesh Bhavsar"}
+              onChange={handleChange}
+            />
+            Dharmesh Bhavsar
+          </label>
+          <label>
+            <input
+              className="sales-radio"
+              type="radio"
+              name="sales"
+              value="Hardik Bhavsar"
+              checked={formData.sales === "Hardik Bhavsar"}
+              onChange={handleChange}
+            />
+            Hardik Bhavsar
+          </label>
+          <label>
+            <input
+              className="sales-radio"
+              type="radio"
+              name="sales"
+              value="Dhaval Kataria"
+              checked={formData.sales === "Dhaval Kataria"}
+              onChange={handleChange}
+            />
+            Dhaval Kataria
+          </label>
+          <label>
+            <input
+              className="sales-radio"
+              type="radio"
+              name="sales"
+              value="Parag Shah"
+              checked={formData.sales === "Parag Shah"}
+              onChange={handleChange}
+            />
+            Parag Shah
+          </label>
+          <label>
+            <input
+              className="sales-radio"
+              type="radio"
+              name="sales"
+              value="Anshul Purohit"
+              checked={formData.sales === "Anshul Purohit"}
+              onChange={handleChange}
+            />
+            Anshul Purohit
+          </label>
+        </div>
+        {/* Ref */} <label>Ref.</label>
+        <input
+          list="Options"
+          name="ref"
+          value={formData.ref}
+          onChange={handleChange}
+          placeholder="Select or type reference"
+        />
+          {/* Source Channel */} <label>Source Channel</label>
+        <select
+          name="sourceChannel"
+          value={formData.sourceChannel}
+          onChange={handleChange}
+        >
+          <option value="">Select Source</option>
+          <option value="Vinay Mishra">Sahdev Bhavsar</option>
+          <option value="Vinay Mishra">Ravi Mandaliya</option>
+          <option value="Vinay Mishra">Hitendra Goswami</option>
+          <option value="Vinay Mishra">Vinay Mishra</option>
+          <option value="Robins Kapadia">Robins Kapadia</option>
+          <option value="Dharmesh Bhavsar">Dharmesh Bhavsar</option>
+          <option value="Hardik Bhavsar">Hardik Bhavsar</option>
+          <option value="Dhaval Kataria">Dhaval Kataria</option>
+          <option value="Parag Shah">Parag Shah</option>
+          <option value="Anshul Purohit">Anshul Purohit</option>
           <option value="Other">Other</option>
         </select>
-        {formData.product === "Other" && (
-          <input
-            type="text"
-            placeholder="Enter Product"
-            value={formData.otherProduct}
-            onChange={(e) =>
-              setFormData({ ...formData, otherProduct: e.target.value })
-            }
-          />
-        )}
-        <br />
-        {/* Loan Amount */} <label>Req Loan Amt</label>
-        <input
-          type="number"
-          name="amount"
-          placeholder="Enter Amount"
-          value={formData.amount}
-          onChange={handleChange}
-        />
+        {/* Code */} <label>Code</label>
+        <select name="code" value={formData.code} onChange={handleChange}>
+          <option value="">Select Code</option>
+          <option value="Sai Fakira">SAI FAKIRA</option>
+          <option value="Aadrika">AADRIKA</option>
+          <option value="Other">Other</option>
+        </select>
         {/* Bank */} <label>Bank</label>
         <select name="bank" value={formData.bank} onChange={handleChange}>
           <option value="">Select Bank</option>
@@ -438,6 +504,28 @@ const Form = () => {
             />
             Rejected
           </label>
+          <label>
+            <input
+              className="sales-radio"
+              type="radio"
+              name="status"
+              value="withdraw"
+              checked={formData.status === "withdraw"}
+              onChange={handleChange}
+            />
+            Withdraw
+          </label>
+          <label>
+            <input
+              className="sales-radio"
+              type="radio"
+              name="status"
+              value="hold"
+              checked={formData.status === "hold"}
+              onChange={handleChange}
+            />
+            Hold
+          </label>
         </div>
         {/* Login Date */} <label>Login Date</label>
         <input
@@ -446,113 +534,145 @@ const Form = () => {
           value={formData.loginDate}
           onChange={handleChange}
         />
-        {/* Sales */} <label>Sales</label>
-        <div className="radio-group">
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="sales"
-              value="Vinay Mishra"
-              checked={formData.sales === "Vinay Mishra"}
-              onChange={handleChange}
-            />
-            Vinay Mishra
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="sales"
-              value="Robins Kapadia"
-              checked={formData.sales === "Robins Kapadia"}
-              onChange={handleChange}
-            />
-            Robins Kapadia
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="sales"
-              value="Dharmesh Bhavsar"
-              checked={formData.sales === "Dharmesh Bhavsar"}
-              onChange={handleChange}
-            />
-            Dharmesh Bhavsar
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="sales"
-              value="Hardik Bhavsar"
-              checked={formData.sales === "Hardik Bhavsar"}
-              onChange={handleChange}
-            />
-            Hardik Bhavsar
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="sales"
-              value="Dhaval Kataria"
-              checked={formData.sales === "Dhaval Kataria"}
-              onChange={handleChange}
-            />
-            Dhaval Kataria
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="sales"
-              value="Parag Shah"
-              checked={formData.sales === "Parag Shah"}
-              onChange={handleChange}
-            />
-            Parag Shah
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="sales"
-              value="Anshul Purohit"
-              checked={formData.sales === "Anshul Purohit"}
-              onChange={handleChange}
-            />
-            Anshul Purohit
-          </label>
-        </div>
-        {/* Ref */} <label>Ref.</label>
+        {/* Property details */}
+        <label>Property Details</label>
         <input
-          list="Options"
-          name="ref"
-          value={formData.ref}
+          type="text"
+          name="propertyDetails"
+          value={formData.propertyDetails}
           onChange={handleChange}
-          placeholder="Select or type reference"
+          placeholder="Enter Property Details"
+          required
         />
-        {/* Source Channel */} <label>Source Channel</label>
-        <select
-          name="sourceChannel"
-          value={formData.sourceChannel}
+        {/* Loan Amount */} <label>Market Value</label>
+        <input
+          type="text"
+          name="mktValue"
+          placeholder="Enter MKT Value"
+          value={formData.mktValue}
           onChange={handleChange}
-        >
-          <option value="">Select Source</option>
-          <option value="Vinay Mishra">Sahdev Bhavsar</option>
-          <option value="Vinay Mishra">Ravi Mandaliya</option>
-          <option value="Vinay Mishra">Hitendra Goswami</option>
-          <option value="Vinay Mishra">Vinay Mishra</option>
-          <option value="Robins Kapadia">Robins Kapadia</option>
-          <option value="Dharmesh Bhavsar">Dharmesh Bhavsar</option>
-          <option value="Hardik Bhavsar">Hardik Bhavsar</option>
-          <option value="Dhaval Kataria">Dhaval Kataria</option>
-          <option value="Parag Shah">Parag Shah</option>
-          <option value="Anshul Purohit">Anshul Purohit</option>
+        />
+        {/* Loan Amount */} <label>Req Loan Amt</label>
+        <input
+          type="text"
+          name="amount"
+          placeholder="Enter Amount"
+          value={formData.amount}
+          onChange={handleChange}
+        />
+        {/* Property details */}
+        <label>Rate of interest</label>
+        <input
+          type="text"
+          name="roi"
+          value={formData.roi}
+          onChange={(e) => setFormData({ ...formData, roi: e.target.value })}
+          placeholder="Enter ROI"
+          required
+        />
+        {/* Product */} <label>Product</label>
+        <select name="product" value={formData.product} onChange={handleChange}>
+          <option value="">Select Product</option>
+          <option value="Home Loan">HL</option> <option value="LAP">LAP</option>
+          <option value="Top Up">TOP UP</option>
+          <option value="Cum Pur">CUM PUR</option>
+          <option value="HL Top Up">HL TOP UP</option>
+          <option value="Lap Top Up">LAP TOP UP</option>
+          <option value="LRD Pur">LRD PUR</option>
+          <option value="Land PUR">LAND PUR</option>
+          <option value="HL BT + TOP Up">HL BT + TOP UP</option>
+          <option value="PLOT + CONSTRUCTION">PLOT + CONSTRUCTION</option>
+          <option value="RESI LAP">RESI LAP</option>
           <option value="Other">Other</option>
         </select>
+        {formData.product === "Other" && (
+          <input
+            type="text"
+            placeholder="Enter Product"
+            value={formData.otherProduct}
+            onChange={(e) =>
+              setFormData({ ...formData, otherProduct: e.target.value })
+            }
+          />
+        )}
+        <br />
+        {/* Processing Fees */} <label>Processing Fees</label>
+        <input
+          type="number"
+          name="processingFees"
+          placeholder="Enter processing Fees"
+          value={formData.processingFees}
+          onChange={handleChange}
+        />
+        {/*Income Product */} <label>Income Product</label>
+        <select
+          name="incomeProduct"
+          value={formData.incomeProduct}
+          onChange={handleChange}
+        >
+          <option value="">Select Product</option>
+          <option value="salaried">Salaried</option>
+          <option value="self-employe">Self-Empploye</option>
+          <option value="normal">Normal</option>
+          <option value="Other">Other</option>
+        </select>
+        {formData.product === "Other" && (
+          <input
+            type="text"
+            placeholder="Enter Product"
+            value={formData.otherProduct}
+            onChange={(e) =>
+              setFormData({ ...formData, otherProduct: e.target.value })
+            }
+          />
+        )}
+        <br />
+        {/* Audit Data */} <label>Audit Data</label>
+        <input
+          type="text"
+          name="auditData"
+          placeholder="Enter Audit Data"
+          value={formData.auditData}
+          onChange={handleChange}
+        />
+        {/* Consulting */} <label>Consulting</label>
+        <input
+          type="text"
+          name="consulting"
+          placeholder="Enter Consulting"
+          value={formData.consulting}
+          onChange={handleChange}
+        />
+        <label>
+          Payout (%):
+          <input
+            type="text"
+            name="payout"
+            value={formData.payout}
+            onChange={handleChange}
+            placeholder="Enter payout amount"
+          />
+        </label>
+        <label>
+          Expence Amount:
+          <input
+            type="text"
+            name="expenceAmount"
+            value={formData.expenceAmount}
+            onChange={handleChange}
+            placeholder="Enter Expence amount"
+          />
+        </label>
+        <label>
+          Fees Refund Amount:
+          <input
+            type="text"
+            name="feesRefundAmount"
+            value={formData.feesRefundAmount}
+            onChange={handleChange}
+            placeholder="Enter Expence amount"
+          />
+        </label>
         <label>Remark:</label>
         <input
           type="text"

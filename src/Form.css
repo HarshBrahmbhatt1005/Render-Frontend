@@ -68,10 +68,11 @@ form select:focus {
 /* Radio group */
 .radio-group {
   display: flex;
-  flex-direction: column;
+  /* flex-direction: column; */
   gap: 10px;
   width: fit-content;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 .radio-group label {
