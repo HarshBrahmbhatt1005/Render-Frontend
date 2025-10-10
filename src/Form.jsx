@@ -612,7 +612,7 @@ const Form = () => {
         >
           <option value="">Select Product</option>
           <option value="salaried">Salaried</option>
-          <option value="self-employe">Self-Empploye</option>
+          <option value="self-employe">Self-Employed</option>
           <option value="normal">Normal</option>
           <option value="Other">Other</option>
         </select>
