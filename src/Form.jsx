@@ -3,8 +3,6 @@ import "./Form.css";
 import { FaCloudDownloadAlt } from "react-icons/fa";
 import axios from "axios";
 
-
-
 const Form = () => {
   const API = "https://render-backend-5sur.onrender.com";
 
@@ -62,15 +60,17 @@ const Form = () => {
   const maskMobile = (mobile) => {
     if (!mobile) return "";
     const mobileStr = String(mobile); // Ensure it's a string
-    return mobileStr.length >= 4
-      ? "XXXXXX" + mobileStr.slice(-4)
-      : mobileStr;
+    return mobileStr.length >= 4 ? "XXXXXX" + mobileStr.slice(-4) : mobileStr;
   };
 
   const finalFormData = () => ({
     ...formData,
     code: getFieldValue(formData.code, formData.otherCode),
     product: getFieldValue(formData.product, formData.otherProduct),
+    sourceChannel: getFieldValue(
+      formData.sourceChannel,
+      formData.sourceChannel
+    ),
     bank: getFieldValue(formData.bank, formData.otherBank),
     approvalStatus: resetApproval ? "" : formData.approvalStatus,
   });
@@ -151,7 +151,10 @@ const Form = () => {
 
     try {
       if (editingId) {
-        await axios.patch(`${API}/api/applications/${editingId}`, finalFormData());
+        await axios.patch(
+          `${API}/api/applications/${editingId}`,
+          finalFormData()
+        );
         alert("Application updated!");
       } else {
         await axios.post(`${API}/api/applications`, finalFormData());
@@ -253,18 +256,8 @@ const Form = () => {
 
   return (
     <div className="form-container">
-      <h2 className="form-title">MIS Integration Form</h2>
+      <h2 className="form-title">Customer Login Form</h2>
       <form onSubmit={handleSubmit}>
-        {/* If "Other" selected, show input field */}
-        {formData.code === "Other" && (
-          <input
-            type="text"
-            name="otherCode"
-            placeholder="Enter Other Code"
-            value={formData.otherCode || ""}
-            onChange={handleChange}
-          />
-        )}
         {/* Name */} <label>Name</label>
         <input
           type="text"
@@ -378,16 +371,17 @@ const Form = () => {
           onChange={handleChange}
           placeholder="Select or type reference"
         />
-          {/* Source Channel */} <label>Source Channel</label>
+        {/* Source Channel */} <label>Source Channel</label>
         <select
           name="sourceChannel"
           value={formData.sourceChannel}
           onChange={handleChange}
         >
           <option value="">Select Source</option>
-          <option value="Vinay Mishra">Sahdev Bhavsar</option>
-          <option value="Vinay Mishra">Ravi Mandaliya</option>
-          <option value="Vinay Mishra">Hitendra Goswami</option>
+          <option value="Sai Fakira">Sai Fakira</option>
+          <option value="Sahdev Bhavsar">Sahdev Bhavsar</option>
+          <option value="Ravi Mandaliya">Ravi Mandaliya</option>
+          <option value="Hitendra Goswami">Hitendra Goswami</option>
           <option value="Vinay Mishra">Vinay Mishra</option>
           <option value="Robins Kapadia">Robins Kapadia</option>
           <option value="Dharmesh Bhavsar">Dharmesh Bhavsar</option>
@@ -397,25 +391,49 @@ const Form = () => {
           <option value="Anshul Purohit">Anshul Purohit</option>
           <option value="Other">Other</option>
         </select>
+        {formData.sourceChannel === "Other" && (
+          <input
+            type="text"
+            placeholder="Enter other Bank"
+            value={formData.sourceChannel}
+          />
+        )}
+        <br />
         {/* Code */} <label>Code</label>
         <select name="code" value={formData.code} onChange={handleChange}>
           <option value="">Select Code</option>
           <option value="Sai Fakira">SAI FAKIRA</option>
           <option value="Aadrika">AADRIKA</option>
+          <option value="Devang">DEVANG</option>
+
           <option value="Other">Other</option>
         </select>
+        {/* If "Other" selected, show input field */}
+        {formData.code === "Other" && (
+          <input
+            type="text"
+            name="otherCode"
+            placeholder="Enter Other Code"
+            value={formData.otherCode || ""}
+            onChange={handleChange}
+          />
+        )}
         {/* Bank */} <label>Bank</label>
         <select name="bank" value={formData.bank} onChange={handleChange}>
           <option value="">Select Bank</option>
-          <option value="HDFC">HDFC</option>
-          <option value="ICICI">ICICI</option>
+          <option value="Aadhar Housing">Aadhar Housing</option>
           <option value="Aaditya Birla">Aaditya Birla</option>
           <option value="Aavas Finance">Aavas Finance</option>
-          <option value="Aadhar Housing">Aadhar Housing</option>
-          <option value="Axis">Axis</option> <option value="BOB">BOB</option>
-          <option value="IDFC">IDFC</option> <option value="IDBI">IDBI</option>
-          <option value="KOTAK">KOTAK</option> <option value="YES">YES</option>
+          <option value="Axis">Axis</option>
+          <option value="BOB">BOB</option>
+          <option value="HDFC">HDFC</option>
+          <option value="ICICI">ICICI</option>
+          <option value="IDBI">IDBI</option>
+          <option value="IDFC">IDFC</option>
+          <option value="KOTAK">KOTAK</option>
           <option value="SMFG">SMFG</option>
+          <option value="YES">YES</option>
+
           <option value="Other">Other</option>
         </select>
         {formData.bank === "Other" && (
@@ -529,7 +547,7 @@ const Form = () => {
         </div>
         {/* Login Date */} <label>Login Date</label>
         <input
-          type="date"
+          type="number"
           name="loginDate"
           value={formData.loginDate}
           onChange={handleChange}
@@ -573,16 +591,17 @@ const Form = () => {
         {/* Product */} <label>Product</label>
         <select name="product" value={formData.product} onChange={handleChange}>
           <option value="">Select Product</option>
-          <option value="Home Loan">HL</option> <option value="LAP">LAP</option>
-          <option value="Top Up">TOP UP</option>
           <option value="Cum Pur">CUM PUR</option>
+          <option value="Home Loan">HL</option>
           <option value="HL Top Up">HL TOP UP</option>
+          <option value="HL BT + TOP Up">HL BT + TOP UP</option>
+          <option value="Land PUR">LAND PUR</option>
+          <option value="LAP">LAP</option>
           <option value="Lap Top Up">LAP TOP UP</option>
           <option value="LRD Pur">LRD PUR</option>
-          <option value="Land PUR">LAND PUR</option>
-          <option value="HL BT + TOP Up">HL BT + TOP UP</option>
           <option value="PLOT + CONSTRUCTION">PLOT + CONSTRUCTION</option>
           <option value="RESI LAP">RESI LAP</option>
+          <option value="Top Up">TOP UP</option>
           <option value="Other">Other</option>
         </select>
         {formData.product === "Other" && (
@@ -598,35 +617,36 @@ const Form = () => {
         <br />
         {/* Processing Fees */} <label>Processing Fees</label>
         <input
-          type="number"
+          type="text"
           name="processingFees"
           placeholder="Enter processing Fees"
           value={formData.processingFees}
           onChange={handleChange}
         />
-        {/*Income Product */} <label>Income Product</label>
+        {/* Category */}
+        <label>Category</label>
         <select
-          name="incomeProduct"
-          value={formData.incomeProduct}
+          name="category"
+          value={formData.category}
           onChange={handleChange}
         >
-          <option value="">Select Product</option>
+          <option value="">Select Category</option>
+          <option value="normal">Normal</option>
           <option value="salaried">Salaried</option>
           <option value="self-employe">Self-Employed</option>
-          <option value="normal">Normal</option>
           <option value="Other">Other</option>
         </select>
-        {formData.product === "Other" && (
+        {/* Show input only if category is Other */}
+        {formData.category === "Other" && (
           <input
             type="text"
-            placeholder="Enter Product"
-            value={formData.otherProduct}
+            placeholder="Enter other Category"
+            value={formData.otherCategory}
             onChange={(e) =>
-              setFormData({ ...formData, otherProduct: e.target.value })
+              setFormData({ ...formData, otherCategory: e.target.value })
             }
           />
         )}
-        <br />
         {/* Audit Data */} <label>Audit Data</label>
         <input
           type="text"
@@ -784,7 +804,7 @@ const Form = () => {
         </label>
       </div>
       <div className="card-container">
-        {filteredApps.reverse().map((app) => (
+        {filteredApps.map((app) => (
           <div key={app._id} className="card">
             <h2
               style={{
@@ -819,8 +839,12 @@ const Form = () => {
               <b>Status:</b> {app.status}
             </p>
             <p className="list-p">
-              <b>Date:</b> {app.loginDate}
+              <b>Date:</b>{" "}
+              {app.loginDate
+                ? new Date(app.loginDate).toISOString().split("T")[0]
+                : ""}
             </p>
+
             <p className="list-p">
               <b>Remark:</b>
               {app.remark}
