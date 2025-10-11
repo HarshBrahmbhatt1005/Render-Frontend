@@ -23,6 +23,7 @@ const Form = () => {
     sales: "",
     ref: "",
     sourceChannel: "",
+    otherSourceChannel: "",
     remark: "",
     approvalStatus: "",
     payout: "",
@@ -378,33 +379,37 @@ const Form = () => {
           onChange={handleChange}
         >
           <option value="">Select Source</option>
-          <option value="Sai Fakira">Sai Fakira</option>
-          <option value="Sahdev Bhavsar">Sahdev Bhavsar</option>
-          <option value="Ravi Mandaliya">Ravi Mandaliya</option>
-          <option value="Hitendra Goswami">Hitendra Goswami</option>
-          <option value="Vinay Mishra">Vinay Mishra</option>
-          <option value="Robins Kapadia">Robins Kapadia</option>
+          <option value="Anshul Purohit">Anshul Purohit</option>
+          <option value="Dhaval Kataria">Dhaval Kataria</option>
           <option value="Dharmesh Bhavsar">Dharmesh Bhavsar</option>
           <option value="Hardik Bhavsar">Hardik Bhavsar</option>
-          <option value="Dhaval Kataria">Dhaval Kataria</option>
+          <option value="Hitendra Goswami">Hitendra Goswami</option>
           <option value="Parag Shah">Parag Shah</option>
-          <option value="Anshul Purohit">Anshul Purohit</option>
+          <option value="Ravi Mandaliya">Ravi Mandaliya</option>
+          <option value="Robins Kapadia">Robins Kapadia</option>
+          <option value="Sahdev Bhavsar">Sahdev Bhavsar</option>
+          <option value="Sai Fakira">Sai Fakira</option>
+          <option value="Vinay Mishra">Vinay Mishra</option>
           <option value="Other">Other</option>
         </select>
         {formData.sourceChannel === "Other" && (
           <input
             type="text"
-            placeholder="Enter other Bank"
-            value={formData.sourceChannel}
+            placeholder="Enter other Source"
+            name="otherSourceChannel"
+            value={formData.otherSourceChannel}
+            onChange={(e) =>
+              setFormData({ ...formData, otherSourceChannel: e.target.value })
+            }
           />
         )}
         <br />
         {/* Code */} <label>Code</label>
         <select name="code" value={formData.code} onChange={handleChange}>
           <option value="">Select Code</option>
-          <option value="Sai Fakira">SAI FAKIRA</option>
           <option value="Aadrika">AADRIKA</option>
           <option value="Devang">DEVANG</option>
+          <option value="Sai Fakira">SAI FAKIRA</option>
 
           <option value="Other">Other</option>
         </select>
@@ -547,7 +552,7 @@ const Form = () => {
         </div>
         {/* Login Date */} <label>Login Date</label>
         <input
-          type="number"
+          type="date"
           name="loginDate"
           value={formData.loginDate}
           onChange={handleChange}
@@ -827,7 +832,10 @@ const Form = () => {
               <b>Ref:</b> {app.ref}
             </p>
             <p className="list-p">
-              <b>Source:</b> {app.sourceChannel}
+              <b>Source Channel:</b>{" "}
+              {app.sourceChannel === "Other"
+                ? app.otherSourceChannel
+                : app.sourceChannel}
             </p>
             <p className="list-p">
               <b>Product:</b> {app.product}
