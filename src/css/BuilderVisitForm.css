@@ -1,0 +1,163 @@
+/* Page background */
+body {
+  background: #f8f5ff;
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Form container */
+.form-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px 40px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+  border: 1px solid #ede7f6;
+}
+
+/* Title */
+.form-title {
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #5e35b1;
+  border-bottom: 2px solid #ede7f6;
+  padding-bottom: 10px;
+}
+
+/* Grid for form fields */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Full width for textarea or long fields */
+.full-width {
+  grid-column: span 2;
+}
+
+/* Labels */
+form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+/* Inputs & dropdowns */
+form input,
+form select,
+form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d1c4e9;
+  border-radius: 10px;
+  outline: none;
+  font-size: 0.95rem;
+  transition: 0.25s ease;
+  background: #fafafa;
+}
+
+form input:focus,
+form select:focus,
+form textarea:focus {
+  border-color: #7e57c2;
+  box-shadow: 0 0 8px rgba(126, 87, 194, 0.3);
+  background: #fff;
+}
+
+/* Submit button */
+.submit-btn {
+  grid-column: span 2;
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  background: linear-gradient(90deg, #8e24aa, #5e35b1);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.3s;
+}
+
+.submit-btn:hover {
+  background: linear-gradient(90deg, #a31f52, #8c1843);
+}
+.visit-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.visit-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  padding: 1rem;
+  flex: 1 1 300px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.visit-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.visit-card p {
+  margin: 0.4rem 0;
+}
+
+.status {
+  font-weight: bold;
+}
+
+.status.approved {
+  color: green;
+}
+
+.status.rejected {
+  color: red;
+}
+
+.status.pending {
+  color: orange;
+}
+
+.card-buttons {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.card-buttons button {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.card-buttons .approve-btn {
+  background-color: #4caf50;
+  color: white;
+}
+
+.card-buttons .approve-btn:hover {
+  background-color: #45a049;
+}
+
+.card-buttons .reject-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.card-buttons .reject-btn:hover {
+  background-color: #e53935;
+}
