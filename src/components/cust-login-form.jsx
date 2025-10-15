@@ -42,7 +42,12 @@ const CustForm = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [applications, setApplications] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const [filters, setFilters] = useState({ fromDate: "", toDate: "", sales: "", status: "" });
+  const [filters, setFilters] = useState({
+    fromDate: "",
+    toDate: "",
+    sales: "",
+    status: "",
+  });
   const [refFilter, setRefFilter] = useState("");
   const [importantChangeMsg, setImportantChangeMsg] = useState("");
   const [resetApproval, setResetApproval] = useState(false);
@@ -65,7 +70,10 @@ const CustForm = () => {
     ...formData,
     code: getFieldValue(formData.code, formData.otherCode),
     product: getFieldValue(formData.product, formData.otherProduct),
-    sourceChannel: getFieldValue(formData.sourceChannel, formData.otherSourceChannel),
+    sourceChannel: getFieldValue(
+      formData.sourceChannel,
+      formData.otherSourceChannel
+    ),
     bank: getFieldValue(formData.bank, formData.otherBank),
     approvalStatus: resetApproval ? "" : formData.approvalStatus,
   });
@@ -111,7 +119,7 @@ const CustForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
- const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
   e.preventDefault();
 
   if (formData.mobile && formData.mobile.length !== 10) {
@@ -121,37 +129,35 @@ const CustForm = () => {
 
   let resetApprovalLocal = false;
   let changedFields = [];
+  let importantMsg = "";
 
   if (editingId) {
     const originalApp = applications.find((app) => app._id === editingId);
 
-    // compare only important field(s) strictly (case sensitive, trimmed)
-    importantFields.forEach((field) => {
-      const newVal = (formData[field] || "").trim();
-      const oldVal = (originalApp[field] || "").trim();
+    if (originalApp) {
+      importantFields.forEach((field) => {
+        const newVal = (formData[field] || "").trim();
+        const oldVal = (originalApp[field] || "").trim();
+        if (newVal !== oldVal) {
+          resetApprovalLocal = true;
+          changedFields.push(field);
+        }
+      });
 
-      if (newVal !== oldVal) {
-        resetApprovalLocal = true;
-        changedFields.push(field);
+      if (resetApprovalLocal) {
+        importantMsg = `⚠️ Important field changed (${changedFields.join(
+          ", "
+        )}), re-approval required.`;
       }
-    });
-  }
-
-  if (resetApprovalLocal) {
-    setResetApproval(true);
-    setImportantChangeMsg(
-      `⚠️ Important field changed (${changedFields.join(", ")}), re-approval required.`
-    );
-  } else {
-    setResetApproval(false);
-    setImportantChangeMsg("");
+    }
   }
 
   try {
     if (editingId) {
       await axios.patch(`${API}/api/applications/${editingId}`, {
         ...formData,
-        approvalStatus: resetApprovalLocal ? "" : formData.approvalStatus,
+        approvalStatus: resetApprovalLocal ? "Pending" : formData.approvalStatus,
+        importantMsg, // save in backend
       });
       alert("Application updated!");
     } else {
@@ -161,8 +167,6 @@ const CustForm = () => {
 
     setFormData(initialFormData);
     setEditingId(null);
-    setImportantChangeMsg("");
-    setResetApproval(false);
     fetchApplications();
   } catch (err) {
     console.error("Error saving application:", err);
@@ -173,25 +177,27 @@ const CustForm = () => {
 
   const handleEdit = (app) => {
     setEditingId(app._id);
-    setFormData({ ...app, approvalStatus: "", status: app.status || "" });
+    // ✅ Don't clear approvalStatus here — preserve it
+    setFormData({ ...app, status: app.status || "" });
     setImportantChangeMsg("");
     setResetApproval(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleApprove = async (id) => {
-    const password = prompt("Enter approval password:");
-    if (!password) return;
+const handleApprove = async (id) => {
+  const password = prompt("Enter approval password:");
+  if (!password) return;
 
-    try {
-      await axios.patch(`${API}/api/applications/${id}/approve`, { password });
-      alert("✅ Approved successfully!");
-      fetchApplications();
-    } catch (err) {
-      console.error(err);
-      alert("Approval failed. Wrong password or server error.");
-    }
-  };
+  try {
+    await axios.patch(`${API}/api/applications/${id}/approve`, { password });
+    // clear important message after approval
+    await axios.patch(`${API}/api/applications/${id}`, { importantMsg: "" });
+    fetchApplications();
+  } catch (err) {
+    console.error(err);
+    alert("Approval failed. Wrong password or server error.");
+  }
+};
 
   const handleReject = async (id) => {
     const password = prompt("Enter approval password:");
@@ -371,40 +377,39 @@ const CustForm = () => {
           onChange={handleChange}
           placeholder="Select or type reference"
         />
-  {/* Source Channel */}
-      <label>Source Channel</label>
-      <select
-        name="sourceChannel"
-        value={formData.sourceChannel}
-        onChange={handleChange}
-      >
-        <option value="">Select Source</option>
-        <option value="Anshul Purohit">Anshul Purohit</option>
-        <option value="Dhaval Kataria">Dhaval Kataria</option>
-        <option value="Dharmesh Bhavsar">Dharmesh Bhavsar</option>
-        <option value="Hardik Bhavsar">Hardik Bhavsar</option>
-        <option value="Hitendra Goswami">Hitendra Goswami</option>
-        <option value="Parag Shah">Parag Shah</option>
-        <option value="Ravi Mandaliya">Ravi Mandaliya</option>
-        <option value="Robins Kapadia">Robins Kapadia</option>
-        <option value="Sahdev Bhavsar">Sahdev Bhavsar</option>
-        <option value="Sai Fakira">Sai Fakira</option>
-        <option value="Vinay Mishra">Vinay Mishra</option>
-        <option value="Other">Other</option>
-      </select>
-      {formData.sourceChannel === "Other" && (
-        <input
-          type="text"
-          placeholder="Enter other Source"
-          name="otherSourceChannel"
-          value={formData.otherSourceChannel}
-          onChange={(e) =>
-            setFormData({ ...formData, otherSourceChannel: e.target.value })
-          }
-        />
-      )}
-
-      <br />
+        {/* Source Channel */}
+        <label>Source Channel</label>
+        <select
+          name="sourceChannel"
+          value={formData.sourceChannel}
+          onChange={handleChange}
+        >
+          <option value="">Select Source</option>
+          <option value="Anshul Purohit">Anshul Purohit</option>
+          <option value="Dhaval Kataria">Dhaval Kataria</option>
+          <option value="Dharmesh Bhavsar">Dharmesh Bhavsar</option>
+          <option value="Hardik Bhavsar">Hardik Bhavsar</option>
+          <option value="Hitendra Goswami">Hitendra Goswami</option>
+          <option value="Parag Shah">Parag Shah</option>
+          <option value="Ravi Mandaliya">Ravi Mandaliya</option>
+          <option value="Robins Kapadia">Robins Kapadia</option>
+          <option value="Sahdev Bhavsar">Sahdev Bhavsar</option>
+          <option value="Sai Fakira">Sai Fakira</option>
+          <option value="Vinay Mishra">Vinay Mishra</option>
+          <option value="Other">Other</option>
+        </select>
+        {formData.sourceChannel === "Other" && (
+          <input
+            type="text"
+            placeholder="Enter other Source"
+            name="otherSourceChannel"
+            value={formData.otherSourceChannel}
+            onChange={(e) =>
+              setFormData({ ...formData, otherSourceChannel: e.target.value })
+            }
+          />
+        )}
+        <br />
         {/* Code */} <label>Code</label>
         <select name="code" value={formData.code} onChange={handleChange}>
           <option value="">Select Code</option>
@@ -862,6 +867,10 @@ const CustForm = () => {
               <button className="edit-btn" onClick={() => handleEdit(app)}>
                 ✏️ Edit
               </button>
+            )}
+            {/* Show warning message if exists */}
+            {app.importantMsg && app.approvalStatus !== "Approved" && (
+              <p className="important-msg">{app.importantMsg}</p>
             )}
             {/* ✅ Approval / Reject Section */}
             {app.approvalStatus === "Approved by SB" ? (
