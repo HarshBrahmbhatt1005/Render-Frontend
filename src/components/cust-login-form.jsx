@@ -4,8 +4,7 @@ import { FaCloudDownloadAlt } from "react-icons/fa";
 import axios from "axios";
 
 const CustForm = () => {
-  const API = "https://render-backend-5sur.onrender.com";
-
+  const API = import.meta.env.VITE_API_URL;
   const initialFormData = {
     code: "",
     otherCode: "",
@@ -20,6 +19,7 @@ const CustForm = () => {
     bankerName: "",
     status: "",
     loginDate: "",
+    disbursedDate: "",
     sales: "",
     ref: "",
     sourceChannel: "",
@@ -29,6 +29,8 @@ const CustForm = () => {
     payout: "",
     expenceAmount: "",
     feesRefundAmount: "",
+    propertyType: "",
+    otherPropertyType: "",
     propertyDetails: "",
     mktValue: "",
     roi: "",
@@ -81,10 +83,11 @@ const CustForm = () => {
   // =================== Fetch ===================
   const fetchApplications = async () => {
     try {
-      const res = await axios.get(`${API}/api/applications`);
-      setApplications(res.data);
+      const res = await axios.get(`${API}/api/applications`); // full path here
+      setApplications(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching applications:", err);
+      setApplications([]);
     }
   };
 
@@ -120,84 +123,101 @@ const CustForm = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (formData.mobile && formData.mobile.length !== 10) {
-    alert("Mobile number must be exactly 10 digits.");
-    return;
-  }
+    if (formData.mobile && formData.mobile.length !== 10) {
+      alert("Mobile number must be exactly 10 digits.");
+      return;
+    }
 
-  let resetApprovalLocal = false;
-  let changedFields = [];
-  let importantMsg = "";
+    let resetApprovalLocal = false;
+    let changedFields = [];
+    let importantMsg = "";
 
-  if (editingId) {
-    const originalApp = applications.find((app) => app._id === editingId);
+    if (editingId) {
+      const originalApp = applications.find((app) => app._id === editingId);
 
-    if (originalApp) {
-      importantFields.forEach((field) => {
-        const newVal = (formData[field] || "").trim();
-        const oldVal = (originalApp[field] || "").trim();
-        if (newVal !== oldVal) {
-          resetApprovalLocal = true;
-          changedFields.push(field);
+      if (originalApp) {
+        importantFields.forEach((field) => {
+          const newVal = (formData[field] || "").trim();
+          const oldVal = (originalApp[field] || "").trim();
+          if (newVal !== oldVal) {
+            resetApprovalLocal = true;
+            changedFields.push(field);
+          }
+        });
+
+        if (resetApprovalLocal) {
+          importantMsg = `⚠️ Important field changed (${changedFields.join(
+            ", "
+          )}), re-approval required.`;
         }
-      });
-
-      if (resetApprovalLocal) {
-        importantMsg = `⚠️ Important field changed (${changedFields.join(
-          ", "
-        )}), re-approval required.`;
       }
     }
-  }
 
-  try {
-    if (editingId) {
-      await axios.patch(`${API}/api/applications/${editingId}`, {
-        ...formData,
-        approvalStatus: resetApprovalLocal ? "Pending" : formData.approvalStatus,
-        importantMsg, // save in backend
-      });
-      alert("Application updated!");
-    } else {
-      await axios.post(`${API}/api/applications`, formData);
-      alert("Application saved!");
+    try {
+      if (editingId) {
+        await axios.patch(`${API}/api/applications/${editingId}`, {
+          ...formData,
+          approvalStatus: resetApprovalLocal
+            ? "Pending"
+            : formData.approvalStatus,
+          importantMsg, // save in backend
+        });
+        alert("Application updated!");
+      } else {
+        await axios.post(`${API}/api/applications`, formData);
+        alert("Application saved!");
+      }
+
+      setFormData(initialFormData);
+      setEditingId(null);
+      fetchApplications();
+    } catch (err) {
+      console.error("Error saving application:", err);
+      alert("Failed to save form.");
     }
-
-    setFormData(initialFormData);
-    setEditingId(null);
-    fetchApplications();
-  } catch (err) {
-    console.error("Error saving application:", err);
-    alert("Failed to save form.");
-  }
-};
-
+  };
 
   const handleEdit = (app) => {
     setEditingId(app._id);
-    // ✅ Don't clear approvalStatus here — preserve it
-    setFormData({ ...app, status: app.status || "" });
+
+    // Format date fields properly for <input type="date">
+    const formattedLoginDate = app.loginDate
+      ? new Date(app.loginDate).toISOString().split("T")[0]
+      : "";
+    const formattedDisbursedDate = app.disbursedDate
+      ? new Date(app.disbursedDate).toISOString().split("T")[0]
+      : "";
+
+    setFormData((prev) => ({
+      ...prev,
+      ...app,
+      loginDate: formattedLoginDate,
+      disbursedDate: formattedDisbursedDate,
+      propertyType: app.propertyType || "", // ensure it’s not undefined
+      status: app.status || "",
+    }));
+
     setImportantChangeMsg("");
     setResetApproval(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-const handleApprove = async (id) => {
-  const password = prompt("Enter approval password:");
-  if (!password) return;
+  const handleApprove = async (id) => {
+    const password = prompt("Enter approval password:");
+    if (!password) return;
 
-  try {
-    await axios.patch(`${API}/api/applications/${id}/approve`, { password });
-    // clear important message after approval
-    await axios.patch(`${API}/api/applications/${id}`, { importantMsg: "" });
-    fetchApplications();
-  } catch (err) {
-    console.error(err);
-    alert("Approval failed. Wrong password or server error.");
-  }
-};
+    try {
+      await axios.patch(`${API}/api/applications/${id}/approve`, { password });
+      // clear important message after approval
+      await axios.patch(`${API}/api/applications/${id}`, { importantMsg: "" });
+      fetchApplications();
+    } catch (err) {
+      console.error(err);
+      alert("Approval failed. Wrong password or server error.");
+    }
+  };
 
   const handleReject = async (id) => {
     const password = prompt("Enter approval password:");
@@ -259,27 +279,41 @@ const handleApprove = async (id) => {
       alert("Export failed: " + (err.response?.data?.error || err.message));
     }
   };
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.keyCode === 13) {
+      e.preventDefault();
+      const form = e.target.form;
+      const index = Array.prototype.indexOf.call(form, e.target);
+      const nextInput = form.elements[index + 1];
+      if (nextInput) {
+        nextInput.focus();
+      } else {
+        e.target.blur(); // last field me keyboard band ho jaye
+      }
+    }
+  };
 
   return (
     <div className="form-container">
       <h2 className="form-title">Customer Login Form</h2>
-      <form onSubmit={handleSubmit}>
-        {/* Name */} <label>Name</label>
+      <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+        {/* Name */} <label>Applicant Name</label>
         <input
           type="text"
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="Enter your name"
+          placeholder="Enter applicant name"
           required
         />
-        {/* Mobile */} <label>Mobile No</label>
+        {/* Mobile */} <label>Applicant Mobile No</label>
         <input
           type="tel"
           name="mobile"
-          placeholder="Enter 10 Digit Mobile"
+          placeholder="Enter applicant Mobile num"
           value={formData.mobile}
           onChange={handleChange}
+          required
         />
         {/* Email */} <label>Email</label>
         <input
@@ -288,6 +322,7 @@ const handleApprove = async (id) => {
           placeholder="Enter Email"
           value={formData.email}
           onChange={handleChange}
+          required
         />
         {/* Sales */} <label>Sales</label>
         <div className="radio-group">
@@ -369,13 +404,14 @@ const handleApprove = async (id) => {
             Anshul Purohit
           </label>
         </div>
-        {/* Ref */} <label>Ref.</label>
+        {/* Ref */} <label>Reference</label>
         <input
           list="Options"
           name="ref"
           value={formData.ref}
           onChange={handleChange}
           placeholder="Select or type reference"
+          required
         />
         {/* Source Channel */}
         <label>Source Channel</label>
@@ -383,19 +419,20 @@ const handleApprove = async (id) => {
           name="sourceChannel"
           value={formData.sourceChannel}
           onChange={handleChange}
+          required
         >
           <option value="">Select Source</option>
-          <option value="Anshul Purohit">Anshul Purohit</option>
-          <option value="Dhaval Kataria">Dhaval Kataria</option>
-          <option value="Dharmesh Bhavsar">Dharmesh Bhavsar</option>
-          <option value="Hardik Bhavsar">Hardik Bhavsar</option>
-          <option value="Hitendra Goswami">Hitendra Goswami</option>
-          <option value="Parag Shah">Parag Shah</option>
-          <option value="Ravi Mandaliya">Ravi Mandaliya</option>
-          <option value="Robins Kapadia">Robins Kapadia</option>
-          <option value="Sahdev Bhavsar">Sahdev Bhavsar</option>
           <option value="Sai Fakira">Sai Fakira</option>
+          <option value="Sahdev Bhavsar">Sahdev Bhavsar</option>
+          <option value="Ravi Mandaliya">Ravi Mandaliya</option>
+          <option value="Hitendra Goswami">Hitendra Goswami</option>
           <option value="Vinay Mishra">Vinay Mishra</option>
+          <option value="Dharmesh Bhavsar">Dharmesh Bhavsar</option>
+          <option value="Robins Kapadia">Robins Kapadia</option>
+          <option value="Hardik Bhavsar">Hardik Bhavsar</option>
+          <option value="Parag Shah">Parag Shah</option>
+          <option value="Dhaval Kataria">Dhaval Kataria</option>
+          <option value="Anshul Purohit">Anshul Purohit</option>
           <option value="Other">Other</option>
         </select>
         {formData.sourceChannel === "Other" && (
@@ -407,14 +444,20 @@ const handleApprove = async (id) => {
             onChange={(e) =>
               setFormData({ ...formData, otherSourceChannel: e.target.value })
             }
+            required
           />
         )}
         <br />
         {/* Code */} <label>Code</label>
-        <select name="code" value={formData.code} onChange={handleChange}>
+        <select
+          name="code"
+          value={formData.code}
+          onChange={handleChange}
+          required
+        >
           <option value="">Select Code</option>
           <option value="Aadrika">AADRIKA</option>
-          <option value="Devang">DEVANG</option>
+          <option value="PARKER">PARKER</option>
           <option value="Sai Fakira">SAI FAKIRA</option>
 
           <option value="Other">Other</option>
@@ -427,18 +470,28 @@ const handleApprove = async (id) => {
             placeholder="Enter Other Code"
             value={formData.otherCode || ""}
             onChange={handleChange}
+            required
           />
         )}
         {/* Bank */} <label>Bank</label>
-        <select name="bank" value={formData.bank} onChange={handleChange}>
+        <select
+          name="bank"
+          value={formData.bank}
+          onChange={handleChange}
+          required
+        >
           <option value="">Select Bank</option>
           <option value="Aadhar Housing">Aadhar Housing</option>
-          <option value="Aaditya Birla">Aaditya Birla</option>
+          <option value="Aaditya Birla">Aditya Birla</option>
           <option value="Aavas Finance">Aavas Finance</option>
           <option value="Axis">Axis</option>
           <option value="BOB">BOB</option>
           <option value="HDFC">HDFC</option>
           <option value="ICICI">ICICI</option>
+          <option value="ICICI-HFC">ICICI-HFC</option>
+          <option value="PNB-Housing Finance.ltd">
+            PNB-Housing Finance.ltd
+          </option>
           <option value="IDBI">IDBI</option>
           <option value="IDFC">IDFC</option>
           <option value="KOTAK">KOTAK</option>
@@ -464,106 +517,117 @@ const handleApprove = async (id) => {
           placeholder="Enter Banker Name"
           value={formData.bankerName}
           onChange={handleChange}
+          required
         ></input>
-        {/* Status */} <label>Status</label>
+        {/* ===== STATUS ===== */}
+        <label>Status</label>
         <div className="radio-group">
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="status"
-              value="Login"
-              checked={formData.status === "Login"}
-              onChange={handleChange}
-            />
-            Login
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="status"
-              value="Sanction"
-              checked={formData.status === "Sanction"}
-              onChange={handleChange}
-            />
-            Sanction
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="status"
-              value="Disbursed"
-              checked={formData.status === "Disbursed"}
-              onChange={handleChange}
-            />
-            Disbursed
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="status"
-              value="Part Disbursed"
-              checked={formData.status === "Part Disbursed"}
-              onChange={handleChange}
-            />
-            Part Disbursed
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="status"
-              value="Re-Login"
-              checked={formData.status === "Re-Login"}
-              onChange={handleChange}
-            />
-            Re-Login
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="status"
-              value="Rejected"
-              checked={formData.status === "Rejected"}
-              onChange={handleChange}
-            />
-            Rejected
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="status"
-              value="withdraw"
-              checked={formData.status === "withdraw"}
-              onChange={handleChange}
-            />
-            Withdraw
-          </label>
-          <label>
-            <input
-              className="sales-radio"
-              type="radio"
-              name="status"
-              value="hold"
-              checked={formData.status === "hold"}
-              onChange={handleChange}
-            />
-            Hold
-          </label>
+          {[
+            "Login",
+            "Sanction",
+            "Disbursed",
+            "Part Disbursed",
+            "Re-Login",
+            "Rejected",
+            "Withdraw",
+            "Hold",
+          ].map((opt) => (
+            <label key={opt}>
+              <input
+                className="sales-radio"
+                type="radio"
+                name="status"
+                value={opt}
+                checked={formData.status === opt}
+                onChange={handleChange}
+              />
+              {opt}
+            </label>
+          ))}
         </div>
+        {/* ===== DISBURSED DATE (only when status is Disbursed or Part Disbursed) ===== */}
+        {(formData.status === "Disbursed" ||
+          formData.status === "Part Disbursed") && (
+          <>
+            <label>Disbursed Date</label>
+            <input
+              type="date"
+              name="disbursedDate"
+              value={formData.disbursedDate}
+              onChange={handleChange}
+              required
+            />
+          </>
+        )}
+        {/* Product */} <label>Product</label>
+        <select
+          name="product"
+          value={formData.product}
+          onChange={handleChange}
+          required
+        >
+          <option value="">Select Product</option>
+          <option value="Home Loan">Home Loan</option>
+          <option value="HL Top Up">Home Loan TOP UP</option>
+          <option value="HL BT + TOP Up">Home Loan BT + TOP UP</option>
+          <option value="Cum Pur">Commercial Purchase</option>
+          <option value="LAP">Loan Against Property</option>
+          <option value="Lap Top Up">Loan Against Property BT + TOP UP</option>
+          <option value="Land PUR">Land Purchase</option>
+          <option value="PLOT + CONSTRUCTION">
+            Plot Purchase + Construction
+          </option>
+          <option value="LRD Pur">Lease Rental Discount Purchase</option>
+          <option value="Other">Other</option>
+        </select>
+        {formData.product === "Other" && (
+          <input
+            type="text"
+            placeholder="Enter Product"
+            value={formData.otherProduct}
+            onChange={(e) =>
+              setFormData({ ...formData, otherProduct: e.target.value })
+            }
+          />
+        )}
+        <br />
         {/* Login Date */} <label>Login Date</label>
         <input
           type="date"
           name="loginDate"
           value={formData.loginDate}
           onChange={handleChange}
+          required
         />
         {/* Property details */}
+        <label>Property Type</label>
+        <select
+          name="propertyType"
+          value={formData.propertyType}
+          onChange={handleChange}
+          required
+        >
+          <option value="">Select Property Type</option>
+          <option value="Residential + Builder Purchase">
+            Residential(Builder Purchase)
+          </option>
+          <option value="Residential">Residential(Resale)</option>
+          <option value="commercial">Commercial(Builder Purchase)</option>
+          <option value="Aavas Finance">Commercial(Resale)</option>
+          <option value="Industrial">Industrial</option>
+        </select>
+        {formData.bank === "Other" && (
+          <input
+            type="text"
+            placeholder="Enter propertyType"
+            value={formData.otherPropertyType}
+            onChange={(e) =>
+              setFormData({ ...formData, otherpropertyType: e.target.value })
+            }
+            required
+          />
+        )}
+        <br />
         <label>Property Details</label>
         <input
           type="text"
@@ -580,6 +644,7 @@ const handleApprove = async (id) => {
           placeholder="Enter MKT Value"
           value={formData.mktValue}
           onChange={handleChange}
+          required
         />
         {/* Loan Amount */} <label>Req Loan Amt</label>
         <input
@@ -588,9 +653,10 @@ const handleApprove = async (id) => {
           placeholder="Enter Amount"
           value={formData.amount}
           onChange={handleChange}
+          required
         />
         {/* Property details */}
-        <label>Rate of interest</label>
+        <label>Rate of interest Offer</label>
         <input
           type="text"
           name="roi"
@@ -599,33 +665,6 @@ const handleApprove = async (id) => {
           placeholder="Enter ROI"
           required
         />
-        {/* Product */} <label>Product</label>
-        <select name="product" value={formData.product} onChange={handleChange}>
-          <option value="">Select Product</option>
-          <option value="Cum Pur">CUM PUR</option>
-          <option value="Home Loan">HL</option>
-          <option value="HL Top Up">HL TOP UP</option>
-          <option value="HL BT + TOP Up">HL BT + TOP UP</option>
-          <option value="Land PUR">LAND PUR</option>
-          <option value="LAP">LAP</option>
-          <option value="Lap Top Up">LAP TOP UP</option>
-          <option value="LRD Pur">LRD PUR</option>
-          <option value="PLOT + CONSTRUCTION">PLOT + CONSTRUCTION</option>
-          <option value="RESI LAP">RESI LAP</option>
-          <option value="Top Up">TOP UP</option>
-          <option value="Other">Other</option>
-        </select>
-        {formData.product === "Other" && (
-          <input
-            type="text"
-            placeholder="Enter Product"
-            value={formData.otherProduct}
-            onChange={(e) =>
-              setFormData({ ...formData, otherProduct: e.target.value })
-            }
-          />
-        )}
-        <br />
         {/* Processing Fees */} <label>Processing Fees</label>
         <input
           type="text"
@@ -633,6 +672,7 @@ const handleApprove = async (id) => {
           placeholder="Enter processing Fees"
           value={formData.processingFees}
           onChange={handleChange}
+          required
         />
         {/* Category */}
         <label>Category</label>
@@ -640,9 +680,9 @@ const handleApprove = async (id) => {
           name="category"
           value={formData.category}
           onChange={handleChange}
+          required
         >
           <option value="">Select Category</option>
-          <option value="normal">Normal</option>
           <option value="salaried">Salaried</option>
           <option value="self-employe">Self-Employed</option>
           <option value="Other">Other</option>
@@ -658,14 +698,18 @@ const handleApprove = async (id) => {
             }
           />
         )}
-        {/* Audit Data */} <label>Audit Data</label>
-        <input
-          type="text"
+        {/* Audit Data */}
+        <label>Audit Data:</label>
+        <select
           name="auditData"
-          placeholder="Enter Audit Data"
           value={formData.auditData}
           onChange={handleChange}
-        />
+          required
+        >
+          <option value="">Select</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
         {/* Consulting */} <label>Consulting</label>
         <input
           type="text"
@@ -673,15 +717,17 @@ const handleApprove = async (id) => {
           placeholder="Enter Consulting"
           value={formData.consulting}
           onChange={handleChange}
+          required
         />
         <label>
-          Payout (%):
+          Payout Pass On(%):
           <input
             type="text"
             name="payout"
             value={formData.payout}
             onChange={handleChange}
             placeholder="Enter payout amount"
+            required
           />
         </label>
         <label>
@@ -838,6 +884,10 @@ const handleApprove = async (id) => {
               <b>Ref:</b> {app.ref}
             </p>
             <p className="list-p">
+              <b>Property Type:</b>
+              {app.propertyType}
+            </p>
+            <p className="list-p">
               <b>Source Channel:</b>{" "}
               {app.sourceChannel === "Other"
                 ? app.otherSourceChannel
@@ -855,9 +905,17 @@ const handleApprove = async (id) => {
             <p className="list-p">
               <b>Date:</b>{" "}
               {app.loginDate
-                ? new Date(app.loginDate).toISOString().split("T")[0]
+                ? new Date(app.loginDate).toLocaleDateString().split("T")[0]
                 : ""}
             </p>
+            {/* ✅ Show Disbursed Date only if status is Disbursed / Part Disbursed */}
+            {(app.status === "Disbursed" || app.status === "Part Disbursed") &&
+              app.disbursedDate && (
+                <p className="list-p">
+                  <strong>Disbursed Date:</strong>{" "}
+                  {new Date(app.disbursedDate).toLocaleDateString("en-GB")}
+                </p>
+              )}
 
             <p className="list-p">
               <b>Remark:</b>

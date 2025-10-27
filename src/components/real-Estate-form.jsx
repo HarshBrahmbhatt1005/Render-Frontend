@@ -3,7 +3,7 @@ import axios from "axios";
 import "../css/BuilderVisitForm.css"; // tumhara CSS
 
 const BuilderVisitForm = () => {
-  const API = "https://render-backend-5sur.onrender.com/api/builder-visits";
+  const API = `${import.meta.env.VITE_API_URL}/api/builder-visits`;
 
   const initialForm = {
     builderName: "",
@@ -68,9 +68,11 @@ const BuilderVisitForm = () => {
   const fetchVisits = async () => {
     try {
       const res = await axios.get(API);
-      setVisits(res.data);
+      // Ensure data is always array
+      setVisits(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error("Error fetching visits:", err);
+      console.error(err);
+      setVisits([]); // fallback
     }
   };
 
@@ -82,6 +84,7 @@ const BuilderVisitForm = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
   const handlePropertyChange = (index, e) => {
     const { name, value } = e.target;
     setFormData((prev) => {
@@ -182,7 +185,17 @@ const BuilderVisitForm = () => {
   return (
     <div className="form-container">
       <h2 className="form-title">Project Login Form</h2>
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={handleSubmit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const form = e.target.form;
+            const index = Array.prototype.indexOf.call(form, e.target);
+            form.elements[index + 1]?.focus(); // next input pe focus karega
+          }
+        }}
+      >
         <div className="form-grid">
           <label>
             Builder Name:
@@ -258,7 +271,7 @@ const BuilderVisitForm = () => {
 
           {formData.propertySizes.map((prop, index) => (
             <div key={index} className="conditional-fields">
-              <h4>Property {index + 1}</h4>
+              <h4>Property Type {index + 1}</h4>
 
               {formData.developmentType === "Residential" && (
                 <label>
@@ -293,11 +306,12 @@ const BuilderVisitForm = () => {
               )}
 
               <label>
-                SQ.FT:
+                SQ.FT/YD:
                 <input
                   type="text"
                   name="sqft"
                   value={prop.sqft}
+                  placeholder="Enter size in sq.ft or yard"
                   onChange={(e) => handlePropertyChange(index, e)}
                 />
               </label>
@@ -306,6 +320,7 @@ const BuilderVisitForm = () => {
                 <input
                   type="text"
                   name="aecAuda"
+                  placeholder="Enter AEC/AUDA "
                   value={prop.aecAuda}
                   onChange={(e) => handlePropertyChange(index, e)}
                 />
@@ -316,6 +331,7 @@ const BuilderVisitForm = () => {
                   type="text"
                   name="selldedAmount"
                   value={prop.selldedAmount}
+                  placeholder="Enter Sellded Amount"
                   onChange={(e) => handlePropertyChange(index, e)}
                 />
               </label>
@@ -325,6 +341,7 @@ const BuilderVisitForm = () => {
                   type="text"
                   name="regularPrice"
                   value={prop.regularPrice}
+                  placeholder="Enter Regular Price Amount"
                   onChange={(e) => handlePropertyChange(index, e)}
                 />
               </label>
@@ -334,6 +351,7 @@ const BuilderVisitForm = () => {
                   type="text"
                   name="downPayment"
                   value={prop.downPayment}
+                  placeholder="Enter Minimum DownPayment Amount"
                   onChange={(e) => handlePropertyChange(index, e)}
                 />
               </label>
@@ -343,6 +361,7 @@ const BuilderVisitForm = () => {
                   type="text"
                   name="maintenance"
                   value={prop.maintenance}
+                  placeholder="Enter Maintenance Amount"
                   onChange={(e) => handlePropertyChange(index, e)}
                 />
               </label>
@@ -364,7 +383,7 @@ const BuilderVisitForm = () => {
             className="property-btn add-btn"
             onClick={addPropertySize}
           >
-            Add Property
+            Add Property Type
           </button>
 
           <label>
@@ -476,11 +495,12 @@ const BuilderVisitForm = () => {
               <option value="">Select</option>
               <option>Salaried</option>
               <option>Self-employed</option>
+              <option>Both</option>
             </select>
           </label>
 
           <label>
-            Units to be sold by us:
+            Units Allocated for Sale
             <input
               placeholder="Enter Units to be sold by us"
               type="number"
@@ -550,21 +570,24 @@ const BuilderVisitForm = () => {
               <strong>Development Type:</strong> {v.developmentType}
             </p>
           </div>
-          {v.propertySizes?.map((p, i) => (
-            <div key={i} className="card-property">
-              <p>
-                <strong>Property {i + 1}</strong>
-              </p>
-              {v.developmentType === "Residential" && <p>Size: {p.size}</p>}
-              {v.developmentType === "Commercial" && <p>Floor: {p.floor}</p>}
-              <p>SQ.FT: {p.sqft}</p>
-              <p>AEC / AUDA: {p.aecAuda}</p>
-              <p>Sellded Amount: {p.selldedAmount}</p>
-              <p>Regular Price: {p.regularPrice}</p>
-              <p>Down Payment: {p.downPayment}</p>
-              <p>Maintenance: {p.maintenance}</p>
-            </div>
-          ))}
+          <div className="card-section">
+            {v.propertySizes?.map((p, i) => (
+              <div key={i} className="card-property">
+                <p>
+                  <strong>Property {i + 1}</strong>
+                </p>
+                {v.developmentType === "Residential" && <p>Size : {p.size}</p>}
+                {v.developmentType === "Commercial" && <p>Floor : {p.floor}</p>}
+                <p>SQ.FT/Yard : {p.sqft}</p>
+                <p>Regular Price : {p.regularPrice}</p>
+                <p>Sellded Amount : {p.selldedAmount}</p>
+                {/* stamp duty here add */}
+                <p>AEC / AUDA : {p.aecAuda}</p>
+                <p>Maintenance : {p.maintenance}</p>
+                <p>Down Payment : {p.downPayment}</p>
+              </div>
+            ))}
+          </div>
           <div className="card-section">
             <p>
               <strong>Financing Required:</strong> {v.financingRequirements}
@@ -579,10 +602,17 @@ const BuilderVisitForm = () => {
               <strong>Stage Of Construction:</strong> {v.stageOfConstruction}
             </p>
             <p>
-              <strong>Visit Date:</strong>{" "}
-              {new Date(v.dateOfVisit).toLocaleDateString()}
+              <strong>Completion Date:</strong>{" "}
+              {new Date(v.expectedCompletionDate).toLocaleDateString()}
             </p>
             <p>
+              <strong>Units for Sale: </strong> {v.unitsForSale}
+            </p>
+            <p>
+              <strong>Time Limit for Sale (Months):</strong> {v.timeLimitMonths}
+            </p>
+          </div>
+            <p style={{fontSize:"20px"}}>
               <strong>Status:</strong>{" "}
               <span
                 className={`status ${
@@ -596,7 +626,6 @@ const BuilderVisitForm = () => {
                 {v.approvalStatus}
               </span>
             </p>
-          </div>
 
           <div className="card-buttons">
             {v.approvalStatus === "Pending" && (

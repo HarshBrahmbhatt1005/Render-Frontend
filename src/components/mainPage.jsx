@@ -7,7 +7,7 @@ const MainPage = () => {
 
   return (
     <div className="main-page">
-      <h1 className="main-title">Welcome to MIS Integration</h1>
+      <h1 className="main-title">Welcome to Online Login form for Customer</h1>
 
       <div className="button-container">
         <button
