@@ -179,30 +179,67 @@ const CustForm = () => {
     }
   };
 
-  const handleEdit = (app) => {
-    setEditingId(app._id);
+  const handleEdit = async (app) => {
+  const salesName = app.sales || "";
+  const password = prompt(`Enter password for ${salesName}:`);
+  if (!password) return; // user cancelled
 
-    // Format date fields properly for <input type="date">
-    const formattedLoginDate = app.loginDate
-      ? new Date(app.loginDate).toISOString().split("T")[0]
-      : "";
-    const formattedDisbursedDate = app.disbursedDate
-      ? new Date(app.disbursedDate).toISOString().split("T")[0]
-      : "";
+  try {
+    const res = await axios.post(`${API}/api/verify-edit`, {
+      sales: salesName,
+      password,
+    });
 
-    setFormData((prev) => ({
-      ...prev,
-      ...app,
-      loginDate: formattedLoginDate,
-      disbursedDate: formattedDisbursedDate,
-      propertyType: app.propertyType || "", // ensure it’s not undefined
-      status: app.status || "",
-    }));
+    if (res.data?.ok) {
+      // Allowed — populate form as before
+      setEditingId(app._id);
 
-    setImportantChangeMsg("");
-    setResetApproval(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+      const formattedLoginDate = app.loginDate
+        ? new Date(app.loginDate).toISOString().split("T")[0]
+        : "";
+      const formattedDisbursedDate = app.disbursedDate
+        ? new Date(app.disbursedDate).toISOString().split("T")[0]
+        : "";
+
+      setFormData((prev) => ({
+        ...prev,
+        ...app,
+        loginDate: formattedLoginDate,
+        disbursedDate: formattedDisbursedDate,
+        propertyType: app.propertyType || "",
+        status: app.status || "",
+      }));
+
+      setImportantChangeMsg("");
+      setResetApproval(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      // Unexpected but handle
+      alert("Verification failed. Try again or contact admin.");
+    }
+  } catch (err) {
+    // Better messaging based on HTTP status
+    const status = err.response?.status;
+    const serverMsg = err.response?.data?.error;
+
+    if (status === 401) {
+      // wrong password — show nice message
+      alert("❌ Invalid password. You are not allowed to edit this record.");
+    } else if (status === 404) {
+      alert(
+        `⚠️ No password configured for ${salesName}. Contact admin to set a password.`
+      );
+    } else if (status === 400) {
+      alert("Bad request. Please try again.");
+    } else {
+      // network/server error — show details for debugging
+      console.error("verify-edit error:", err);
+      alert(
+        "Server error while verifying. Please try again later or check the console for details."
+      );
+    }
+  }
+};
 
   const handleApprove = async (id) => {
     const password = prompt("Enter approval password:");
@@ -884,7 +921,7 @@ const CustForm = () => {
               <b>Ref:</b> {app.ref}
             </p>
             <p className="list-p">
-              <b>Property Type:</b>
+              <b>Property Type: </b>
               {app.propertyType}
             </p>
             <p className="list-p">
@@ -918,7 +955,7 @@ const CustForm = () => {
               )}
 
             <p className="list-p">
-              <b>Remark:</b>
+              <b>Remark: </b>
               {app.remark}
             </p>
             {app.approvalStatus !== "Rejected by SB" && (

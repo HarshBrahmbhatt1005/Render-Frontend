@@ -268,8 +268,7 @@ form textarea:focus {
   background-color: #4caf50; /* green */
   color: white;
   /* margin: 0 auto; */
-    width: 25%;
-
+  width: 25%;
 }
 
 .add-btn:hover {
@@ -311,5 +310,10 @@ form textarea:focus {
   .radio-group input[type="radio"] {
     width: 14px;
     height: 14px;
+  }
+}
+@media (max-width: 768px) {
+  .add-btn {
+    width: 60%;
   }
 }

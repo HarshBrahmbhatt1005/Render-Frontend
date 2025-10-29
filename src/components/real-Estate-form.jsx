@@ -14,6 +14,7 @@ const BuilderVisitForm = () => {
     gentry: "",
     propertySizes: [
       {
+        type: "Residential",
         size: "",
         sqft: "",
         selldedAmount: "",
@@ -22,9 +23,9 @@ const BuilderVisitForm = () => {
         maintenance: "",
         aecAuda: "",
         floor: "",
+        marketValue: "",
       },
     ],
-
     floor: "",
     sqft: "",
     aecAuda: "",
@@ -50,29 +51,26 @@ const BuilderVisitForm = () => {
     payout: "",
     stageOfConstruction: "",
   };
-  const exportExcel = (builderName = "", status = "") => {
-    let url = "/api/builder-visits/export/excel";
-    const params = [];
-    if (builderName) params.push(`builderName=${builderName}`);
-    if (status) params.push(`status=${status}`);
-    if (params.length) url += "?" + params.join("&");
-
-    window.open(url);
-  };
 
   const [formData, setFormData] = useState(initialForm);
   const [visits, setVisits] = useState([]);
-  const [password, setPassword] = useState("");
+  const [editingId, setEditingId] = useState(null);
 
-  // Fetch all builder visits
+  // 💡 Format numbers with Indian commas safely
+  const formatIndian = (val) => {
+    if (!val) return "";
+    const num = Number(val.toString().replace(/,/g, ""));
+    return isNaN(num) ? val : num.toLocaleString("en-IN");
+  };
+
+  // 🔹 Fetch all builder visits
   const fetchVisits = async () => {
     try {
       const res = await axios.get(API);
-      // Ensure data is always array
       setVisits(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error(err);
-      setVisits([]); // fallback
+      console.error("Fetch error:", err);
+      setVisits([]);
     }
   };
 
@@ -80,6 +78,7 @@ const BuilderVisitForm = () => {
     fetchVisits();
   }, []);
 
+  // --- FORM INPUT HANDLERS ---
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -88,26 +87,29 @@ const BuilderVisitForm = () => {
   const handlePropertyChange = (index, e) => {
     const { name, value } = e.target;
     setFormData((prev) => {
-      const newSizes = [...prev.propertySizes];
-      newSizes[index][name] = value;
-      return { ...prev, propertySizes: newSizes };
+      const updated = [...prev.propertySizes];
+      updated[index] = { ...updated[index], [name]: value };
+      return { ...prev, propertySizes: updated };
     });
   };
 
-  const addPropertySize = () => {
+  // 🏗️ Add new property block
+  const addPropertySize = (type = formData.developmentType) => {
     setFormData((prev) => ({
       ...prev,
       propertySizes: [
         ...prev.propertySizes,
         {
+          type,
           size: "",
+          floor: "",
           sqft: "",
+          aecAuda: "",
           selldedAmount: "",
           regularPrice: "",
+          marketValue: "",
           downPayment: "",
           maintenance: "",
-          aecAuda: "",
-          floor: "",
         },
       ],
     }));
@@ -120,42 +122,124 @@ const BuilderVisitForm = () => {
     }));
   };
 
+  // ✏️ FIXED: When Editing — ensure property type exists
+  const handleEdit = (app) => {
+    setEditingId(app._id);
+
+    const formattedPropertySizes = (app.propertySizes || []).map((p) => ({
+      ...p,
+      type:
+        p.type ||
+        (app.developmentType === "Both"
+          ? p.floor
+            ? "Commercial"
+            : "Residential"
+          : app.developmentType),
+      // 🪄 Format commas where needed
+      selldedAmount: p.selldedAmount
+        ? Number(p.selldedAmount).toLocaleString("en-IN")
+        : "",
+      marketValue: p.marketValue
+        ? Number(p.marketValue).toLocaleString("en-IN")
+        : "",
+      downPayment: p.downPayment
+        ? Number(p.downPayment).toLocaleString("en-IN")
+        : "",
+      maintenance: p.maintenance
+        ? Number(p.maintenance).toLocaleString("en-IN")
+        : "",
+    }));
+
+    setFormData({
+      ...app,
+      propertySizes: formattedPropertySizes,
+      avgAgreementValue: app.avgAgreementValue
+        ? Number(app.avgAgreementValue).toLocaleString("en-IN")
+        : "",
+      marketValue: app.marketValue
+        ? Number(app.marketValue).toLocaleString("en-IN")
+        : "",
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // --- FORM SUBMIT / UPDATE ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(API, formData);
-      alert("✅ Builder Visit submitted!");
+      const cleanPropertySizes = formData.propertySizes.map((p) => ({
+        ...p,
+        selldedAmount: (p.selldedAmount || "").replace(/,/g, ""),
+        regularPrice: (p.regularPrice || "").replace(/,/g, ""),
+        downPayment: (p.downPayment || "").replace(/,/g, ""),
+        maintenance: (p.maintenance || "").replace(/,/g, ""),
+        marketValue: (p.marketValue || "").replace(/,/g, ""),
+      }));
+
+      const cleanData = {
+        ...formData,
+        avgAgreementValue: (formData.avgAgreementValue || "").replace(/,/g, ""),
+        marketValue: (formData.marketValue || "").replace(/,/g, ""),
+        propertySizes: cleanPropertySizes,
+      };
+
+      if (editingId) {
+        await axios.patch(`${API}/${editingId}`, cleanData);
+        alert("✅ Data updated successfully!");
+        setEditingId(null);
+      } else {
+        await axios.post(API, cleanData);
+        alert("✅ Form submitted successfully!");
+      }
+
       setFormData(initialForm);
       fetchVisits();
     } catch (err) {
-      console.error("Error saving builder visit:", err);
+      console.error("❌ Submit Error:", err);
       alert("❌ Failed to submit form.");
     }
   };
 
+  // 🔹 Approve Visit
   const handleApprove = async (id) => {
     const password = prompt("Enter approval password:");
     if (!password) return;
 
     try {
       await axios.patch(`${API}/${id}/approve`, { password });
+      alert("✅ Application approved successfully!");
       fetchVisits();
     } catch (err) {
-      alert("Approval failed.");
+      console.error("❌ Approval failed:", err);
+      if (err.response && err.response.status === 401) {
+        alert("Invalid password!");
+      } else {
+        alert("Approval failed. Try again.");
+      }
     }
   };
 
+  // 🔹 Reject Visit
   const handleReject = async (id) => {
     const password = prompt("Enter approval password:");
     if (!password) return;
 
     try {
       await axios.patch(`${API}/${id}/reject`, { password });
+      alert("❌ Application rejected successfully!");
       fetchVisits();
     } catch (err) {
-      alert("Rejection failed.");
+      console.error("❌ Rejection failed:", err);
+      if (err.response && err.response.status === 401) {
+        alert("Invalid password!");
+      } else {
+        alert("Rejection failed. Try again.");
+      }
     }
   };
+
+  // 🔹 Export Excel
   const handleExportExcel = async () => {
     try {
       const enteredPassword = prompt("Enter password to download Excel:");
@@ -163,7 +247,9 @@ const BuilderVisitForm = () => {
 
       const res = await axios.get(
         `${API}/export/excel?password=${enteredPassword}`,
-        { responseType: "blob" }
+        {
+          responseType: "blob",
+        }
       );
 
       const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -252,10 +338,10 @@ const BuilderVisitForm = () => {
               onChange={handleChange}
             />
           </label>
+          {/* -------------------- DEVELOPMENT TYPE -------------------- */}
           <div className="radio-group full-width">
             <p className="radio-label">Type of Development:</p>
-
-            {["Residential", "Commercial"].map((type) => (
+            {["Residential", "Commercial", "Both"].map((type) => (
               <label key={type}>
                 <input
                   type="radio"
@@ -269,122 +355,131 @@ const BuilderVisitForm = () => {
             ))}
           </div>
 
-          {formData.propertySizes.map((prop, index) => (
-            <div key={index} className="conditional-fields">
-              <h4>Property Type {index + 1}</h4>
+          {/* -------------------- PROPERTY SECTION (SHARED TEMPLATE) -------------------- */}
+          {["Residential", "Commercial"]
+            .filter(
+              (type) =>
+                formData.developmentType === type ||
+                formData.developmentType === "Both"
+            )
+            .map((type) => (
+              <div key={type} className="property-section">
+                <h3 className="section-title">
+                  {type === "Residential" ? "🏠 Residential" : "🏢 Commercial"}{" "}
+                  Properties
+                </h3>
 
-              {formData.developmentType === "Residential" && (
-                <label>
-                  Size:
-                  <select
-                    name="size"
-                    value={prop.size}
-                    onChange={(e) => handlePropertyChange(index, e)}
-                  >
-                    <option value="">Select</option>
-                    <option>3BHK</option>
-                    <option>4BHK</option>
-                    <option>5BHK</option>
-                  </select>
-                </label>
-              )}
+                {formData.propertySizes.map((prop, index) => {
+                  if (prop.type !== type) return null; // Only render matching type
 
-              {formData.developmentType === "Commercial" && (
-                <label>
-                  Floor:
-                  <select
-                    name="floor"
-                    value={prop.floor}
-                    onChange={(e) => handlePropertyChange(index, e)}
-                  >
-                    <option value="">Select</option>
-                    <option>Ground Floor</option>
-                    <option>1st Floor</option>
-                    <option>Office</option>
-                  </select>
-                </label>
-              )}
+                  return (
+                    <div key={index} className="conditional-fields">
+                      <h4>
+                        {type} Property {index + 1}
+                      </h4>
 
-              <label>
-                SQ.FT/YD:
-                <input
-                  type="text"
-                  name="sqft"
-                  value={prop.sqft}
-                  placeholder="Enter size in sq.ft or yard"
-                  onChange={(e) => handlePropertyChange(index, e)}
-                />
-              </label>
-              <label>
-                AEC / AUDA:
-                <input
-                  type="text"
-                  name="aecAuda"
-                  placeholder="Enter AEC/AUDA "
-                  value={prop.aecAuda}
-                  onChange={(e) => handlePropertyChange(index, e)}
-                />
-              </label>
-              <label>
-                Sellded Amount:
-                <input
-                  type="text"
-                  name="selldedAmount"
-                  value={prop.selldedAmount}
-                  placeholder="Enter Sellded Amount"
-                  onChange={(e) => handlePropertyChange(index, e)}
-                />
-              </label>
-              <label>
-                Regular Price:
-                <input
-                  type="text"
-                  name="regularPrice"
-                  value={prop.regularPrice}
-                  placeholder="Enter Regular Price Amount"
-                  onChange={(e) => handlePropertyChange(index, e)}
-                />
-              </label>
-              <label>
-                Down Payment:
-                <input
-                  type="text"
-                  name="downPayment"
-                  value={prop.downPayment}
-                  placeholder="Enter Minimum DownPayment Amount"
-                  onChange={(e) => handlePropertyChange(index, e)}
-                />
-              </label>
-              <label>
-                Maintenance:
-                <input
-                  type="text"
-                  name="maintenance"
-                  value={prop.maintenance}
-                  placeholder="Enter Maintenance Amount"
-                  onChange={(e) => handlePropertyChange(index, e)}
-                />
-              </label>
+                      {/* Unique field per type */}
+                      {type === "Residential" ? (
+                        <label>
+                          Size:
+                          <select
+                            name="size"
+                            value={prop.size}
+                            onChange={(e) => handlePropertyChange(index, e)}
+                          >
+                            <option value="">Select</option>
+                            <option>3BHK</option>
+                            <option>4BHK</option>
+                            <option>5BHK</option>
+                          </select>
+                        </label>
+                      ) : (
+                        <label>
+                          Floor:
+                          <select
+                            name="floor"
+                            value={prop.floor}
+                            onChange={(e) => handlePropertyChange(index, e)}
+                          >
+                            <option value="">Select</option>
+                            <option>Ground Floor</option>
+                            <option>1st Floor</option>
+                            <option>Office</option>
+                          </select>
+                        </label>
+                      )}
+                      {[
+                        ["sqft", "SQ.FT/YD"],
+                        ["aecAuda", "AEC / AUDA"],
+                        ["selldedAmount", "Sale-Deed Amount"],
+                        ["marketValue", "Market Value"],
+                        ["downPayment", "Down Payment"],
+                        ["maintenance", "Maintenance"],
+                      ].map(([name, label]) => (
+                        <label key={name}>
+                          {label}:
+                          <input
+                            type="text"
+                            name={name}
+                            placeholder={`Enter ${label}`}
+                            value={prop[name]}
+                            onChange={(e) => {
+                              let value = e.target.value;
 
-              {formData.propertySizes.length > 1 && (
+                              // ✅ only apply comma formatting to selected fields
+                              if (
+                                [
+                                  "selldedAmount",
+                                  "marketValue",
+                                  "downPayment",
+                                  "maintenance",
+                                ].includes(name)
+                              ) {
+                                value = value.replace(/,/g, ""); // remove commas first
+                                if (!isNaN(value) && value !== "") {
+                                  const formattedValue =
+                                    Number(value).toLocaleString("en-IN");
+                                  handlePropertyChange(index, {
+                                    target: { name, value: formattedValue },
+                                  });
+                                  return;
+                                } else if (value === "") {
+                                  handlePropertyChange(index, {
+                                    target: { name, value: "" },
+                                  });
+                                  return;
+                                }
+                              }
+
+                              // 🧾 for sqft & aecAuda → plain update (no commas)
+                              handlePropertyChange(index, e);
+                            }}
+                          />
+                        </label>
+                      ))}
+
+                      {formData.propertySizes.length > 1 && (
+                        <button
+                          type="button"
+                          className="property-btn remove-btn"
+                          onClick={() => removePropertySize(index)}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+
                 <button
                   type="button"
-                  className="property-btn remove-btn"
-                  onClick={() => removePropertySize(index)}
+                  className="property-btn add-btn"
+                  onClick={() => addPropertySize(type)}
                 >
-                  Remove
+                  Add {type} Property
                 </button>
-              )}
-            </div>
-          ))}
-
-          <button
-            type="button"
-            className="property-btn add-btn"
-            onClick={addPropertySize}
-          >
-            Add Property Type
-          </button>
+              </div>
+            ))}
 
           <label>
             Total Units & Blocks:
@@ -456,22 +551,42 @@ const BuilderVisitForm = () => {
           <label>
             Avg Agreement Value:
             <input
-              placeholder=" Enter Avg Agreement Value"
-              type="number"
+              type="text"
               name="avgAgreementValue"
+              placeholder="Enter Avg Agreement Value"
               value={formData.avgAgreementValue}
-              onChange={handleChange}
+              onChange={(e) => {
+                let value = e.target.value.replace(/,/g, ""); // remove existing commas
+                if (!isNaN(value) && value !== "") {
+                  // Indian number formatting
+                  const formattedValue = Number(value).toLocaleString("en-IN");
+                  setFormData({
+                    ...formData,
+                    avgAgreementValue: formattedValue,
+                  });
+                } else if (value === "") {
+                  setFormData({ ...formData, avgAgreementValue: "" });
+                }
+              }}
             />
           </label>
 
           <label>
             Market Value:
             <input
-              placeholder="Enter MKT Value"
-              type="number"
+              type="text"
               name="marketValue"
+              placeholder="Enter MKT Value"
               value={formData.marketValue}
-              onChange={handleChange}
+              onChange={(e) => {
+                let value = e.target.value.replace(/,/g, ""); // remove commas
+                if (!isNaN(value) && value !== "") {
+                  const formattedValue = Number(value).toLocaleString("en-IN");
+                  setFormData({ ...formData, marketValue: formattedValue });
+                } else if (value === "") {
+                  setFormData({ ...formData, marketValue: "" });
+                }
+              }}
             />
           </label>
 
@@ -542,7 +657,7 @@ const BuilderVisitForm = () => {
           </label>
 
           <button type="submit" className="submit-btn">
-            Submit Form
+            {editingId ? "Update Form" : "Submit Form"}
           </button>
         </div>
       </form>
@@ -578,13 +693,19 @@ const BuilderVisitForm = () => {
                 </p>
                 {v.developmentType === "Residential" && <p>Size : {p.size}</p>}
                 {v.developmentType === "Commercial" && <p>Floor : {p.floor}</p>}
+                {v.developmentType === "Both" && (
+                  <>
+                    {p.size && <p>Size : {p.size}</p>}
+                    {p.floor && <p>Floor : {p.floor}</p>}
+                  </>
+                )}
                 <p>SQ.FT/Yard : {p.sqft}</p>
-                <p>Regular Price : {p.regularPrice}</p>
-                <p>Sellded Amount : {p.selldedAmount}</p>
+                <p>Market value : {formatIndian(p.marketValue)}</p>
+                <p>Sellded Amount : {formatIndian(p.selldedAmount)}</p>
                 {/* stamp duty here add */}
                 <p>AEC / AUDA : {p.aecAuda}</p>
-                <p>Maintenance : {p.maintenance}</p>
-                <p>Down Payment : {p.downPayment}</p>
+                <p>Maintenance : {formatIndian(p.maintenance)}</p>
+                <p>Down Payment : {formatIndian(p.downPayment)}</p>
               </div>
             ))}
           </div>
@@ -612,26 +733,27 @@ const BuilderVisitForm = () => {
               <strong>Time Limit for Sale (Months):</strong> {v.timeLimitMonths}
             </p>
           </div>
-            <p style={{fontSize:"20px"}}>
-              <strong>Status:</strong>{" "}
-              <span
-                className={`status ${
-                  v.approvalStatus === "Approved"
-                    ? "approved"
-                    : v.approvalStatus === "Rejected"
-                    ? "rejected"
-                    : "pending"
-                }`}
-              >
-                {v.approvalStatus}
-              </span>
-            </p>
+          <p style={{ fontSize: "20px" }}>
+            <strong>Status:</strong>{" "}
+            <span
+              className={`status ${
+                v.approvalStatus === "Approved"
+                  ? "approved"
+                  : v.approvalStatus === "Rejected"
+                  ? "rejected"
+                  : "pending"
+              }`}
+            >
+              {v.approvalStatus}
+            </span>
+          </p>
 
           <div className="card-buttons">
             {v.approvalStatus === "Pending" && (
               <>
                 <button onClick={() => handleApprove(v._id)}>Approve</button>
                 <button onClick={() => handleReject(v._id)}>Reject</button>
+                <button onClick={() => handleEdit(v)}>Edit</button>
               </>
             )}
           </div>
