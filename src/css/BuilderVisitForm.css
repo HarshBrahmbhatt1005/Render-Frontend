@@ -69,7 +69,8 @@ form textarea {
   border: 1px solid #d1c4e9;
   border-radius: 10px;
   outline: none;
-  font-size: 0.95rem;
+  font-size: 16px;
+  /* Prevents iOS auto-zoom on focus */
   transition: 0.25s ease;
   background: #fafafa;
 }
@@ -100,6 +101,7 @@ form textarea:focus {
 .submit-btn:hover {
   background: linear-gradient(90deg, #a31f52, #8c1843);
 }
+
 .visit-cards {
   display: flex;
   flex-wrap: wrap;
@@ -201,6 +203,7 @@ form textarea:focus {
 .card-buttons .reject-btn:hover {
   background-color: #e53935;
 }
+
 .download-btn {
   display: flex;
   gap: 5px;
@@ -214,6 +217,7 @@ form textarea:focus {
   cursor: pointer;
   transition: background 0.3s;
 }
+
 .radio-group {
   display: flex;
   align-items: center;
@@ -257,7 +261,7 @@ form textarea:focus {
   background: #fff;
   border-radius: 12px;
   padding: 16px 20px;
-  margin: 12px 0;
+  margin: 12px 30px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: 0.25s ease;
   box-sizing: border-box;
@@ -332,6 +336,7 @@ form textarea:focus {
 .status.pending {
   color: orange;
 }
+
 /* Common button styles */
 .property-btn {
   padding: 8px 15px;
@@ -345,7 +350,8 @@ form textarea:focus {
 
 /* Add Property button */
 .add-btn {
-  background-color: #4caf50; /* green */
+  background-color: #4caf50;
+  /* green */
   color: white;
   /* margin: 0 auto; */
   width: 25%;
@@ -357,13 +363,15 @@ form textarea:focus {
 
 /* Remove Property button */
 .remove-btn {
-  background-color: #f44336; /* red */
+  background-color: #f44336;
+  /* red */
   color: white;
 }
 
 .remove-btn:hover {
   background-color: #da190b;
 }
+
 .filters {
   display: flex;
   gap: 10px;
@@ -375,12 +383,17 @@ form textarea:focus {
   border-radius: 6px;
   border: 1px solid #ccc;
 }
+
 .radio-group input[type="radio"] {
-  width: 16px; /* normal size iPhone/Safari me */
-  height: 16px; /* normal size */
-  -webkit-appearance: radio; /* Safari ke liye */
+  width: 16px;
+  /* normal size iPhone/Safari me */
+  height: 16px;
+  /* normal size */
+  -webkit-appearance: radio;
+  /* Safari ke liye */
   appearance: radio;
-  accent-color: #8c1843; /* optional color change */
+  accent-color: #8c1843;
+  /* optional color change */
 }
 
 @media only screen and (max-width: 480px) {
@@ -394,6 +407,7 @@ form textarea:focus {
     height: 14px;
   }
 }
+
 @media (max-width: 768px) {
   .add-btn {
     width: 60%;
@@ -454,7 +468,7 @@ form textarea:focus {
 .filter-section {
   background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
   padding: 25px 30px;
-  margin: 30px 0;
+  margin: 30px 40px;
   border-radius: 16px;
   border: 2px solid #e2e8f0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -544,7 +558,7 @@ form textarea:focus {
   .clear-filters-btn {
     width: 100%;
   }
-  
+
   .filter-section {
     padding: 20px;
   }
@@ -578,12 +592,13 @@ form textarea:focus {
 }
 
 /* Individual property card styling */
-.property-cards-container > div,
+.property-cards-container>div,
 .property-type-card {
   box-sizing: border-box;
   max-width: 100%;
   overflow: hidden;
-  min-width: 0; /* Prevents grid blowout */
+  min-width: 0;
+  /* Prevents grid blowout */
 }
 
 /* Property metrics grid - 2 columns on desktop */
@@ -612,7 +627,7 @@ form textarea:focus {
   .property-metrics-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .property-metrics-grid span {
     width: 100%;
   }
@@ -640,19 +655,19 @@ form textarea:focus {
     box-sizing: border-box;
     max-width: 100%;
   }
-  
+
   /* Property card title responsive */
-  .visit-card > div[style*="margin: 0 0 6px 0"] {
+  .visit-card>div[style*="margin: 0 0 6px 0"] {
     font-size: 14px !important;
   }
-  
+
   /* Ensure property type cards don't overflow */
   .property-type-card {
     padding: 10px !important;
   }
-  
+
   /* Property title within cards */
-  .property-type-card > div[style*="fontWeight: bold"] {
+  .property-type-card>div[style*="fontWeight: bold"] {
     font-size: 14px !important;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -661,16 +676,17 @@ form textarea:focus {
 
 /* Extra small devices (phones, less than 480px) */
 @media (max-width: 480px) {
+
   /* Reduce padding on property cards */
   .property-type-card {
     padding: 8px !important;
   }
-  
+
   /* Smaller font sizes for better fit */
   .property-metrics-grid {
     font-size: 13px;
   }
-  
+
   /* Ensure yellow highlighted spans don't overflow */
   .property-metrics-grid span[style*="backgroundColor:yellow"],
   .property-metrics-grid span[style*="background-color: yellow"] {
@@ -678,6 +694,7 @@ form textarea:focus {
     padding: 3px 5px !important;
   }
 }
+
 /* View Toggle Section */
 .view-toggle-container {
   display: flex;
@@ -726,6 +743,7 @@ form textarea:focus {
   .view-toggle {
     width: 100%;
   }
+
   .view-toggle-btn {
     flex: 1;
     padding: 10px 15px;
@@ -733,6 +751,7 @@ form textarea:focus {
     justify-content: center;
   }
 }
+
 /* Approved Card Styling */
 .visit-card.approved-card {
   border-left: 6px solid #4caf50;
@@ -758,8 +777,15 @@ form textarea:focus {
 }
 
 @keyframes badgePop {
-  0% { transform: scale(0.5); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @media (max-width: 480px) {
@@ -769,8 +795,456 @@ form textarea:focus {
     font-size: 0.8rem;
     padding: 2px 8px;
   }
+
   .card-title {
     flex-direction: column;
     align-items: center;
   }
+}
+
+/* ── Form title row — navy header bar ── */
+.form-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 0;
+  padding: 18px 28px;
+  background: linear-gradient(135deg, #1e3a5f 0%, #0e4d91 100%);
+}
+
+.form-title-row .form-title,
+.form-title {
+  text-align: left;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* ── Form body padding ── */
+.form-container>form {
+  padding: 24px 28px 28px;
+}
+
+/* ── Labels ── */
+form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5px;
+}
+
+/* ── Inputs ── */
+form input,
+form select,
+form textarea {
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  background: #f9fafb;
+  color: #1e293b;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+form input:focus,
+form select:focus,
+form textarea:focus {
+  border-color: #1e3a5f;
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
+  background: #fff;
+  outline: none;
+}
+
+form input:disabled,
+form select:disabled,
+form textarea:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
+
+/* ================================================================
+   PROFESSIONAL VISIT CARD REDESIGN
+================================================================ */
+
+/* Card title */
+.vc-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #4a148c;
+  text-align: center;
+  margin: 0 0 16px;
+  word-break: break-word;
+}
+
+/* Section block inside card */
+.vc-section {
+  border: 1px solid #e8edf3;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.vc-section-title {
+  background: linear-gradient(135deg, #1e3a5f, #0e4d91);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+}
+
+/* Grid rows inside sections */
+.vc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+}
+
+.vc-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+}
+
+.vc-field {
+  padding: 9px 14px;
+  border-bottom: 1px solid #f0f4f8;
+  border-right: 1px solid #f0f4f8;
+  font-size: 0.82rem;
+  color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vc-field:nth-child(even) {
+  border-right: none;
+}
+
+.vc-field:last-child {
+  border-bottom: none;
+}
+
+.vc-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vc-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Highlight values */
+.vc-value--highlight {
+  background: #fef08a;
+  color: #713f12;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  font-weight: 700;
+}
+
+.vc-value--blue {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  font-weight: 700;
+}
+
+/* Property sub-card */
+.vc-prop-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.vc-prop-title {
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-bottom: 1px solid #dbeafe;
+}
+
+/* Floor height block */
+.vc-floor-block {
+  background: #e3f2fd;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 0.82rem;
+}
+
+.vc-floor-block .vc-label {
+  color: #1565c0;
+}
+
+/* USP tags */
+.vc-usp-block {
+  background: #eff6ff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.vc-usp-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.vc-usp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vc-usp-tag {
+  background: #2563eb;
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Remark */
+.vc-remark {
+  background: #fef9c3;
+  border-left: 4px solid #eab308;
+  border-radius: 6px;
+  padding: 9px 14px;
+  margin-bottom: 14px;
+  font-size: 0.85rem;
+  color: #713f12;
+  font-weight: 500;
+}
+
+/* Submitted date */
+.vc-submitted {
+  font-size: 0.78rem;
+  color: #475569;
+  background: #f0f8ff;
+  border-left: 3px solid #3b82f6;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-bottom: 14px;
+}
+
+/* Approval row */
+.vc-approval-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vc-approval-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.vc-status--approved {
+  color: #16a34a;
+}
+
+.vc-status--rejected {
+  color: #dc2626;
+}
+
+.vc-status--pending {
+  color: #d97706;
+}
+
+/* Action buttons */
+.vc-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.vc-btn {
+  padding: 7px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.vc-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.vc-btn--approve {
+  background: #16a34a;
+  color: #fff;
+}
+
+.vc-btn--reject {
+  background: #dc2626;
+  color: #fff;
+}
+
+.vc-btn--edit {
+  background: #2563eb;
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+
+  .vc-grid,
+  .vc-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .vc-field {
+    border-right: none;
+  }
+}
+
+/* ── Collapsible property section ── */
+.vc-section-title--clickable {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.vc-section-title--clickable:hover {
+  opacity: 0.88;
+}
+
+.vc-prop-toggle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  opacity: 0.85;
+}
+
+.vc-prop-more {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #2563eb;
+  padding: 8px;
+  cursor: pointer;
+  border-top: 1px dashed #dbeafe;
+  margin-top: 6px;
+  border-radius: 0 0 6px 6px;
+  transition: background 0.15s;
+}
+
+.vc-prop-more:hover {
+  background: #eff6ff;
+}
+
+/* ── Property field expand button ── */
+.vc-prop-expand-btn {
+  width: 100%;
+  background: #f8fafc;
+  border: none;
+  border-top: 1px dashed #dbeafe;
+  color: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 7px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+  border-radius: 0 0 6px 6px;
+}
+
+.vc-prop-expand-btn:hover {
+  background: #eff6ff;
+}
+
+/* ── Approval status bar (top of card) ── */
+.vc-approval-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.vc-approval-badge {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+}
+
+.vc-approval-divider {
+  width: 1px;
+  height: 32px;
+  background: #e2e8f0;
+}
+
+.vc-approval-badge-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: #e2e8f0;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.vc-approval-badge-status {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.vc-approval-badge-status--approved {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.vc-approval-badge-status--rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.vc-approval-badge-status--pending {
+  background: #fef3c7;
+  color: #d97706;
 }

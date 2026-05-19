@@ -2,13 +2,85 @@
    RealestateLeadForm.css  –  clean, professional, minimal
 ================================================================ */
 
+/* ── Root ─────────────────────────────────────────── */
+.rl-page-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0e4d91 100%);
+  position: relative;
+  overflow: hidden;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* ── Decorative blobs ─────────────────────────────── */
+.rl-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.rl-blob-1 {
+  width: 500px;
+  height: 500px;
+  background: #3b82f6;
+  top: -120px;
+  left: -120px;
+}
+
+.rl-blob-2 {
+  width: 400px;
+  height: 400px;
+  background: #6366f1;
+  bottom: -100px;
+  right: -80px;
+}
+
+/* ── Main Center Wrapper ──────────────────────────── */
+.rl-main-center-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+}
+
 .rl-form-container {
   max-width: 860px;
+  width: 100%;
+}
+
+/* ── Header ───────────────────────────────────────── */
+.form-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .rl-title {
-  font-size: 1.55rem;
-  color: #1a1a2e;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.rl-subtitle {
+  font-size: 0.82rem;
+  color: #93c5fd;
+  margin: 4px 0 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* ── Section card ──────────────────────────────────── */
@@ -65,8 +137,26 @@
 }
 
 @media (max-width: 680px) {
-  .rl-grid-3 { grid-template-columns: 1fr; }
-  .rl-grid-2 { grid-template-columns: 1fr; }
+  .rl-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 0px;
+  }
+
+  .rl-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .rl-form-container {
+    margin-bottom: 0px !important;
+  }
+
+  .rl-list-section {
+    margin-top: 0 !important;
+  }
+}
+
+.rl-record-row-3 {
+  grid-template-columns: 1fr;
 }
 
 /* ── Field wrapper ──────────────────────────────────── */
@@ -90,7 +180,8 @@
   padding: 10px 13px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 16px;
+  /* Prevents iOS auto-zoom on focus */
   background: #fff;
   color: #111827;
   outline: none;
@@ -242,11 +333,25 @@
 }
 
 /* ── Status color coding ────────────────────────────── */
-.rl-status--ringing             { color: #92400e; }
-.rl-status--call-not-connected  { color: #374151; }
-.rl-status--not-interested      { color: #991b1b; }
-.rl-status--call-connected      { color: #065f46; }
-.rl-status--interested          { color: #1e40af; }
+.rl-status--ringing {
+  color: #92400e;
+}
+
+.rl-status--call-not-connected {
+  color: #374151;
+}
+
+.rl-status--not-interested {
+  color: #991b1b;
+}
+
+.rl-status--call-connected {
+  color: #065f46;
+}
+
+.rl-status--interested {
+  color: #1e40af;
+}
 
 /* ── Property details section ───────────────────────── */
 .rl-interested-section {
@@ -342,6 +447,21 @@
   color: #64748b;
 }
 
+.rl-modal-close-btn {
+  margin-top: 14px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #1e293b;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.rl-modal-close-btn:hover {
+  background: #f8fafc;
+}
+
 /* Spinner */
 .rl-spinner {
   width: 40px;
@@ -354,17 +474,31 @@
 }
 
 @keyframes rl-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes rl-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes rl-slide-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Submit Button ──────────────────────────────────── */
@@ -388,11 +522,12 @@
   background: #16304f !important;
   box-shadow: 0 6px 16px rgba(30, 58, 95, 0.3) !important;
 }
+
 /* ── MAIN PAGE WRAPPER (CENTERED) ───────────── */
 .rl-page-container {
   background: #f1f5f9;
   min-height: 100vh;
-  padding: 40px 0;
+  /* padding: 40px 0; */
 }
 
 .rl-main-center-wrap {
@@ -407,9 +542,11 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  padding: 40px !important;
+  /* padding: 40px !important; */
   margin-bottom: 60px !important;
 }
+
+
 
 /* ── Integrated RECORD GRID (Vertical Table-Style) ───────────── */
 .rl-list-section {
@@ -434,22 +571,36 @@
   margin: 0;
 }
 
-.rl-list-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Row 1: Search Bar */
+.rl-search-row {
+  margin-bottom: 12px;
+}
+
+.rl-search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.rl-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
 }
 
 .rl-search-bar {
   width: 100%;
   background: white !important;
   border: 1px solid #cbd5e1 !important;
-  padding: 11px 16px !important;
+  padding: 11px 16px 11px 42px !important;
   border-radius: 8px !important;
   font-size: 0.95rem !important;
   box-sizing: border-box;
 }
 
+/* Row 2: All Filters and Buttons */
 .rl-filters-row {
   display: flex;
   gap: 10px;
@@ -459,10 +610,11 @@
 
 .rl-filter-select {
   flex: 1;
-  min-width: 140px;
+  min-width: 120px;
+  max-width: 180px;
   background: white !important;
   border: 1px solid #cbd5e1 !important;
-  padding: 10px 14px !important;
+  padding: 10px 12px !important;
   border-radius: 8px !important;
   font-size: 0.88rem !important;
   font-weight: 600 !important;
@@ -497,6 +649,13 @@
   transition: all 0.2s;
   box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rl-export-btn svg {
+  flex-shrink: 0;
 }
 
 .rl-export-btn:hover {
@@ -505,18 +664,116 @@
   box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.3);
 }
 
+.rl-summary-btn {
+  background: #ef8a15;
+  color: #fff;
+  border: none;
+  padding: 12px 22px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(239, 138, 21, 0.35);
+  white-space: nowrap;
+}
+
+.rl-summary-btn:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 8px -1px rgba(217, 119, 6, 0.45);
+}
+
+.rl-summary-modal {
+  background: #fff;
+  width: min(1100px, 92vw);
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.24);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rl-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.rl-summary-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #1e3a5f;
+}
+
+.rl-summary-close {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #1e293b;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.rl-summary-table-wrap {
+  overflow: auto;
+  padding: 8px 12px 14px;
+}
+
+.rl-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+.rl-summary-table th,
+.rl-summary-table td {
+  border: 1px solid #e2e8f0;
+  padding: 8px 10px;
+  text-align: center;
+  font-size: 0.86rem;
+}
+
+.rl-summary-table th {
+  background: #f8fafc;
+  color: #1e3a5f;
+  font-weight: 800;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.rl-summary-table td:first-child,
+.rl-summary-table th:first-child {
+  text-align: left;
+  min-width: 220px;
+  position: sticky;
+  left: 0;
+  background: #fff;
+}
+
+.rl-summary-table th:first-child {
+  background: #f8fafc;
+  z-index: 2;
+}
+
 .rl-record-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
 }
 
 /* Formal Record Card - Table-like Grid */
 .rl-record-card {
   background: white;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid #cbd5e1;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -526,27 +783,41 @@
 .rl-record-header {
   background: #f1f8ff;
   border-bottom: 1px solid #e2e8f0;
-  padding: 10px 14px;
+  padding: 8px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+.rl-record-header--finance {
+  background: #fef3e2;
+  border-bottom: 1px solid #f6c97a;
+}
+
 .rl-record-manager {
-  font-size: 1.15rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #1e3a5f;
 }
 
 .rl-record-badge {
-  background: #fff;
-  color: #1e3a5f;
-  border: 1px solid #e2e8f0;
-  padding: 4px 14px;
+  padding: 3px 10px;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
+}
+
+.rl-badge-realestate {
+  background: #e8f0fe;
+  color: #1e3a5f;
+  border: 1px solid #b3c6f0;
+}
+
+.rl-badge-finance {
+  background: #fef3e2;
+  color: #92400e;
+  border: 1px solid #f6c97a;
 }
 
 /* Card Body - Grid Rows & Cells */
@@ -555,19 +826,30 @@
   flex-direction: column;
 }
 
-.rl-record-row-1, .rl-record-row-2 {
+.rl-record-row-1,
+.rl-record-row-2,
+.rl-record-row-3 {
   display: grid;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.rl-record-row-1 { grid-template-columns: 1fr; }
-.rl-record-row-2 { grid-template-columns: 1fr 1fr; }
+.rl-record-row-1 {
+  grid-template-columns: 1fr;
+}
+
+.rl-record-row-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.rl-record-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 
 .rl-record-cell {
-  padding: 7px 14px;
+  padding: 6px 10px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   border-right: 1px solid #e2e8f0;
 }
 
@@ -576,25 +858,41 @@
 }
 
 .rl-record-label {
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   font-weight: 800;
   color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
 .rl-record-val {
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #0f172a;
   min-height: 1.1em;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 /* Status Colors & Alerts */
-.status-interested { color: #15803d; font-weight: 800; }
-.status-ringing { color: #b45309; font-weight: 800; }
-.status-not-interested { color: #4b5563; }
-.status-call-connected { color: #1d4ed8; font-weight: 800; }
+.status-interested {
+  color: #15803d;
+  font-weight: 800;
+}
+
+.status-ringing {
+  color: #b45309;
+  font-weight: 800;
+}
+
+.status-not-interested {
+  color: #4b5563;
+}
+
+.status-call-connected {
+  color: #1d4ed8;
+  font-weight: 800;
+}
 
 .rl-followup-alert {
   color: #dc2626;
@@ -603,7 +901,7 @@
 
 /* Card Footer */
 .rl-record-footer {
-  padding: 10px 14px;
+  padding: 8px 10px;
   background: #fff;
   display: flex;
   justify-content: center;
@@ -614,13 +912,75 @@
   background: #3b82f6;
   color: white;
   border: none;
-  padding: 8px 30px;
+  padding: 7px 18px;
   border-radius: 6px;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   cursor: pointer;
   box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
   transition: all 0.2s;
+}
+
+.rl-history-wrap {
+  border-top: 1px solid #e2e8f0;
+}
+
+.rl-history-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #1e3a5f;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rl-history-content {
+  padding: 0 10px 8px;
+}
+
+.rl-history-item {
+  background: #f7f9fc;
+  border-radius: 5px;
+  padding: 5px 7px;
+  margin-bottom: 4px;
+  border: 1px solid #e0e7f0;
+  font-size: 10.5px;
+}
+
+.rl-history-item-title {
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 2px;
+}
+
+.rl-history-item-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #444;
+}
+
+.rl-history-meta-label {
+  color: #888;
+  text-transform: uppercase;
+  font-size: 9px;
+}
+
+.rl-history-followup {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+.rl-history-remarks {
+  color: #555;
+  margin-top: 2px;
 }
 
 .rl-edit-btn:hover {
@@ -660,6 +1020,7 @@
   .rl-record-row-2 {
     grid-template-columns: 1fr;
   }
+
   .rl-record-cell {
     border-right: none;
   }
@@ -715,4 +1076,78 @@
 .rl-submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ── Lead Type Radio Row ──────────────────────────────────── */
+.rl-lead-type-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #f0f4ff;
+  border: 1px solid #c7d4f0;
+  border-radius: 8px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.rl-lead-type-label {
+  font-weight: 600;
+  color: #1e3a5f;
+  font-size: 0.9rem;
+  margin-right: 4px;
+}
+
+.rl-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  color: #333;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.rl-radio-input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1e3a5f;
+  cursor: pointer;
+}
+
+
+/* ── Loader Inline ──────────────────────────────────── */
+.rl-loader-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 40px 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+  margin: 20px 0;
+  contain: layout;
+}
+
+.rl-loader-inline span {
+  font-size: 16px;
+  color: #64748b;
+  font-weight: 500;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ── Record Grid Container ──────────────────────────── */
+.rl-record-grid {
+  contain: layout style paint;
 }

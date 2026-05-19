@@ -148,6 +148,14 @@ const CustForm = () => {
     "bankerEmail",
   ];
 
+  const getDisplayChanges = useCallback((changes) => {
+    if (!changes || typeof changes !== "object") return {};
+    if (changes.status) {
+      return { status: changes.status };
+    }
+    return changes;
+  }, []);
+
   // Utility to format date (ISO → DD-MM-YYYY)
   const formatDateToIndian = (dateStr) => {
     if (!dateStr) return "";
@@ -276,12 +284,30 @@ const CustForm = () => {
   }, []);
 
   const filteredApps = applications.filter((app) => {
+    // ✅ First check: loginDate must exist and be valid
+    if (!app.loginDate) return false;
+    
     const appDate = new Date(app.loginDate);
+    
+    // ✅ Check if date is valid
+    if (isNaN(appDate.getTime())) return false;
+    
     const from = filters.fromDate ? new Date(filters.fromDate) : null;
     const to = filters.toDate ? new Date(filters.toDate) : null;
 
-    if (from && appDate < from) return false;
-    if (to && appDate > to) return false;
+    // ✅ Date range filtering - compare dates properly
+    if (from) {
+      // Set from date to start of day (00:00:00)
+      from.setHours(0, 0, 0, 0);
+      if (appDate < from) return false;
+    }
+    
+    if (to) {
+      // Set to date to end of day (23:59:59)
+      to.setHours(23, 59, 59, 999);
+      if (appDate > to) return false;
+    }
+    
     if (filters.sales && app.sales !== filters.sales) return false;
     if (filters.status && app.status !== filters.status) return false;
     
@@ -1310,37 +1336,27 @@ const formatAmount = (value) => {
       </style>
       
       <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
-        {/* Name */} <label>Applicant Name</label>
-        <input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          placeholder="Enter applicant name"
-          disabled={isFieldDisabled("name")}
-          required
-        />
-        {/* Mobile */} <label>Applicant Mobile No</label>
-        <input
-          type="tel"
-          name="mobile"
-          placeholder="Enter applicant Mobile num"
-          value={formData.mobile}
-          onChange={handleChange}
-          disabled={isFieldDisabled("mobile")}
-          required
-        />
-        {/* Email */} <label>Email</label>
-        <input
-          type="email"
-          name="email"
-          placeholder="Enter Email"
-          value={formData.email}
-          onChange={handleChange}
-          disabled={isFieldDisabled("email")}
-          required
-        />
+
+        {/* ── Section: Applicant Info ── */}
+        <div className="cf-section-card">
+        <div className="cf-section-header">👤 Applicant Information</div>
+        <div className="cf-grid">
+          <div>
+            {/* Name */} <label>Applicant Name</label>
+            <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Enter applicant name" disabled={isFieldDisabled("name")} required />
+          </div>
+          <div>
+            {/* Mobile */} <label>Applicant Mobile No</label>
+            <input type="tel" name="mobile" placeholder="Enter applicant Mobile num" value={formData.mobile} onChange={handleChange} disabled={isFieldDisabled("mobile")} required />
+          </div>
+          <div>
+            {/* Email */} <label>Email</label>
+            <input type="email" name="email" placeholder="Enter Email" value={formData.email} onChange={handleChange} disabled={isFieldDisabled("email")} required />
+          </div>
+        </div>
+
         {/* Sales */}
+        <div style={{padding: "0 20px 20px"}}>
         <label>Sales</label>
         <div className="radio-group">
           {[
@@ -1358,89 +1374,64 @@ const formatAmount = (value) => {
                 name="sales"
                 value={salesPerson}
                 checked={formData.sales === salesPerson}
-                disabled={isFieldDisabled("sales")} // ✅ uses helper
+                disabled={isFieldDisabled("sales")}
                 onChange={handleChange}
               />
               {salesPerson}
             </label>
           ))}
-        </div>{" "}
-        {/* Ref */} <label>Reference</label>
-        <input
-          list="Options"
-          name="ref"
-          value={formData.ref}
-          onChange={handleChange}
-          placeholder="Select or type reference"
-          disabled={isFieldDisabled("ref")}
-          required
-        />
-        {/* Source Channel */}
-        <label>Source Channel</label>
-        <select
-          name="sourceChannel"
-          value={formData.sourceChannel}
-          onChange={handleChange}
-          disabled={isFieldDisabled("sourceChannel")}
-          required
-        >
-          <option value="">Select Source</option>
-          <option value="Sai Fakira">Sai Fakira</option>
-          <option value="Sahdev Bhavsar">Sahdev Bhavsar</option>
-          <option value="Ravi Mandaliya">Ravi Mandaliya</option>
-          <option value="Hitendra Goswami">Hitendra Goswami</option>
-          <option value="Pradeep Trivedi">Pradeep Trivedi</option>
-          <option value="Vinay Mishra">Vinay Mishra</option>
-          <option value="Dharmesh Bhavsar">Dharmesh Bhavsar</option>
-          <option value="Robins Kapadia">Robins Kapadia</option>
-          <option value="Hardik Bhavsar">Hardik Bhavsar</option>
-          <option value="Parag Shah">Parag Shah</option>
-          <option value="Dhaval Kataria">Dhaval Kataria</option>
-          <option value="Niraj Gelot">Niraj Gelot</option>
-          <option value="Other">Other</option>
-        </select>
-        {formData.sourceChannel === "Other" && (
-          <input
-            type="text"
-            placeholder="Enter other Source"
-            name="otherSourceChannel"
-            value={formData.otherSourceChannel}
-            disabled={isApprovedLock} // locked if approved
-            onChange={(e) =>
-              setFormData({ ...formData, otherSourceChannel: e.target.value })
-            }
-            required
-          />
-        )}
-        <br />
-        {/* Code */} <label>Code</label>
-        <select
-          name="code"
-          value={formData.code}
-          onChange={handleChange}
-          disabled={isFieldDisabled("code")}
-          required
-        >
-          <option value="">Select Code</option>
-          <option value="Aadrika">AADRIKA</option>
-          <option value="PARKER">PARKER</option>
-          <option value="Sai Fakira">SAI FAKIRA</option>
+        </div>
+        </div>
+        </div>{/* end cf-section-card: Applicant Info */}
 
-          <option value="Other">Other</option>
-        </select>
-        {formData.code === "Other" && (
-          <input
-            type="text"
-            name="otherCode"
-            placeholder="Enter Other Code"
-            value={formData.otherCode || ""}
-            onChange={handleChange}
-            disabled={isFieldDisabled("otherCode")}
-            required
-          />
-        )}
-        {/* Bank */} <label>Bank</label>
-        <select
+        {/* ── Section: Loan Details ── */}
+        <div className="cf-section-card">
+        <div className="cf-section-header">🏦 Loan Details</div>
+        <div className="cf-grid">
+          <div>
+            {/* Ref */} <label>Reference</label>
+            <input list="Options" name="ref" value={formData.ref} onChange={handleChange} placeholder="Select or type reference" disabled={isFieldDisabled("ref")} required />
+          </div>
+          <div>
+            {/* Source Channel */}
+            <label>Source Channel</label>
+            <select name="sourceChannel" value={formData.sourceChannel} onChange={handleChange} disabled={isFieldDisabled("sourceChannel")} required>
+              <option value="">Select Source</option>
+              <option value="Sai Fakira">Sai Fakira</option>
+              <option value="Sahdev Bhavsar">Sahdev Bhavsar</option>
+              <option value="Ravi Mandaliya">Ravi Mandaliya</option>
+              <option value="Hitendra Goswami">Hitendra Goswami</option>
+              <option value="Pradeep Trivedi">Pradeep Trivedi</option>
+              <option value="Vinay Mishra">Vinay Mishra</option>
+              <option value="Dharmesh Bhavsar">Dharmesh Bhavsar</option>
+              <option value="Robins Kapadia">Robins Kapadia</option>
+              <option value="Hardik Bhavsar">Hardik Bhavsar</option>
+              <option value="Parag Shah">Parag Shah</option>
+              <option value="Dhaval Kataria">Dhaval Kataria</option>
+              <option value="Other">Other</option>
+            </select>
+            {formData.sourceChannel === "Other" && (
+              <input type="text" placeholder="Enter other Source" name="otherSourceChannel" value={formData.otherSourceChannel} disabled={isApprovedLock} onChange={(e) => setFormData({ ...formData, otherSourceChannel: e.target.value })} required />
+            )}
+          </div>
+          <div>
+            {/* Code */} <label>Code</label>
+            <select name="code" value={formData.code} onChange={handleChange} disabled={isFieldDisabled("code")} required>
+              <option value="">Select Code</option>
+              <option value="Aadrika">AADRIKA</option>
+              <option value="PARKER">PARKER</option>
+              <option value="Sai Fakira">SAI FAKIRA</option>
+              <option value="Other">Other</option>
+            </select>
+            {formData.code === "Other" && (
+              <input type="text" name="otherCode" placeholder="Enter Other Code" value={formData.otherCode || ""} onChange={handleChange} disabled={isFieldDisabled("otherCode")} required />
+            )}
+          </div>
+        </div>
+        <div className="cf-grid">
+          <div>
+            {/* Bank */} <label>Bank</label>
+            <select
           name="bank"
           value={formData.bank}
           onChange={handleChange}
@@ -1470,55 +1461,31 @@ const formatAmount = (value) => {
           <option value="Other">Other</option>
         </select>
         {formData.bank === "Other" && (
-          <input
-            type="text"
-            placeholder="Enter Bank"
-            value={formData.otherBank}
-            disabled={isFieldDisabled("otherBank")}
-            onChange={(e) =>
-              setFormData({ ...formData, otherBank: e.target.value })
-            }
-          />
+          <input type="text" placeholder="Enter Bank" value={formData.otherBank} disabled={isFieldDisabled("otherBank")} onChange={(e) => setFormData({ ...formData, otherBank: e.target.value })} />
         )}
-        <br />
-        {/* Banker Name */} <label>Banker Name</label>
-        <input
-          name="bankerName"
-          placeholder="Enter Banker Name"
-          value={formData.bankerName}
-          onChange={handleChange}
-          disabled={isFieldDisabled("bankerName")}
-          required
-        ></input>
+          </div>
+          <div>
+            {/* Banker Name */} <label>Banker Name</label>
+            <input name="bankerName" placeholder="Enter Banker Name" value={formData.bankerName} onChange={handleChange} disabled={isFieldDisabled("bankerName")} required />
+          </div>
+          <div>
+            {/* Banker Contact Number */}
+            <label>Banker Contact Number</label>
+            <input type="tel" name="bankerContactNumber" placeholder="Enter Banker Contact Number" value={formData.bankerContactNumber}
+              onChange={(e) => { const value = e.target.value.replace(/\D/g, "").slice(0, 10); setFormData((prev) => ({ ...prev, bankerContactNumber: value })); }}
+              inputMode="numeric" pattern="\d{10}" maxLength={10} disabled={isFieldDisabled("bankerContactNumber")} />
+          </div>
+          <div>
+            {/* Banker Email */}
+            <label>Banker Email</label>
+            <input type="email" name="bankerEmail" placeholder="Enter Banker Email" value={formData.bankerEmail} onChange={handleChange} disabled={isFieldDisabled("bankerEmail")} />
+          </div>
+        </div>
+        </div>{/* end cf-section-card: Loan Details */}
 
-        {/* Banker Contact Number */}
-        <label>Banker Contact Number</label>
-        <input
-          type="tel"
-          name="bankerContactNumber"
-          placeholder="Enter Banker Contact Number"
-          value={formData.bankerContactNumber}
-          onChange={(e) => {
-            const value = e.target.value.replace(/\D/g, "").slice(0, 10);
-            setFormData((prev) => ({ ...prev, bankerContactNumber: value }));
-          }}
-          inputMode="numeric"
-          pattern="\d{10}"
-          maxLength={10}
-          disabled={isFieldDisabled("bankerContactNumber")}
-        ></input>
-
-        {/* Banker Email */}
-        <label>Banker Email</label>
-        <input
-          type="email"
-          name="bankerEmail"
-          placeholder="Enter Banker Email"
-          value={formData.bankerEmail}
-          onChange={handleChange}
-          disabled={isFieldDisabled("bankerEmail")}
-        ></input>
-
+        {/* ── Section: Status ── */}
+        <div className="cf-section-card">
+        <div className="cf-section-header">📋 Status</div>
         {/* ===== STATUS ===== */}
         <label>Status</label>
         <div className="radio-group">
@@ -1844,15 +1811,11 @@ const formatAmount = (value) => {
                     placeholder="Enter amount"
                     value={part.amount || ""}
                     onChange={(e) => {
+                      const raw = e.target.value.replace(/,/g, "");
+                      const formatted = raw === "" ? "" : isNaN(raw) ? part.amount : Number(raw).toLocaleString("en-IN");
                       const updated = [...(formData.partDisbursed || [])];
-                      updated[index] = {
-                        ...updated[index],
-                        amount: e.target.value,
-                      };
-                      setFormData((prev) => ({
-                        ...prev,
-                        partDisbursed: updated,
-                      }));
+                      updated[index] = { ...updated[index], amount: formatted };
+                      setFormData((prev) => ({ ...prev, partDisbursed: updated }));
                     }}
                     disabled={isFieldDisabled("partDisbursed")}
                     required
@@ -1927,232 +1890,127 @@ const formatAmount = (value) => {
   </>
 )}
 
-        {/* Product */} <label>Product</label>
-        <select
-          name="product"
-          value={formData.product}
-          onChange={handleChange}
-          disabled={isFieldDisabled("product")}
-          required
-        >
-          <option value="">Select Product</option>
-          <option value="Home Loan">Home Loan</option>
-          <option value="HL Top Up">Home Loan TOP UP</option>
-          <option value="HL BT + TOP Up">Home Loan BT + TOP UP</option>
-          <option value="Commercial Purchase">Commercial Purchase</option>
-          <option value="LAP">Loan Against Property</option>
-          <option value="Lap Top Up">Loan Against Property BT + TOP UP</option>
-          <option value="Land PUR">Land Purchase</option>
-          <option value="PLOT + CONSTRUCTION">Plot Purchase + Construction</option>
-          <option value="LRD Pur">Lease Rental Discount Purchase</option>
-          <option value="Industrial Purchase">Industrial Purchase</option>
-          <option value="Inventory Funding">Inventory Funding</option>
-          <option value="Project Loan">Project Loan</option>
-          <option value="Other">Other</option>
-        </select>
-        {formData.product === "Other" && (
-          <input
-            type="text"
-            placeholder="Enter Product"
-            value={formData.otherProduct}
-            disabled={isFieldDisabled("otherProduct")}
-            onChange={(e) =>
-              setFormData({ ...formData, otherProduct: e.target.value })
-            }
-          />
-        )}
-        <br />
-        {/* Login Date */} <label>Login Date</label>
-        <input
-          type="date"
-          name="loginDate"
-          value={formData.loginDate}
-          max={today}
-          onChange={handleChange}
-          disabled={isFieldDisabled("loginDate")} // ✅ uses helper
-          required
-        />
-        {/* Property details */}
-        <label>Property Type</label>
-        <select
-          name="propertyType"
-          value={formData.propertyType}
-          onChange={handleChange}
-          disabled={isFieldDisabled("propertyType")} // ✅ uses helper
-          required
-        >
-          <option value="">Select Property Type</option>
-          <option value="Residential + Builder Purchase">
-            Residential(Builder Purchase)
-          </option>
-          <option value="Residential(Resale)">Residential(Resale)</option>
-          <option value="Commercial(Builder Purchase)">
-            Commercial(Builder Purchase)
-          </option>
-          <option value="Commercial(Resale)">Commercial(Resale)</option>
-          <option value="Plot Purchase">Plot Purchase</option>
-          <option value="Plot + Construction">Plot + Construction</option>
-          <option value="Industrial">Industrial</option>
-          <option value="Property Not Decide">Property Not Decide</option>
-        </select>
-        {/* {formData.bank === "Other" && (
-          <input
-            type="text"
-            placeholder="Enter propertyType"
-            value={formData.otherPropertyType}
-            onChange={(e) =>
-              setFormData({ ...formData, otherpropertyType: e.target.value })
-            }
-            required
-          />
-        )} */}
-        <br />
-        <label>Property Details</label>
-        <input
-          type="text"
-          name="propertyDetails"
-          value={formData.propertyDetails}
-          onChange={handleChange}
-          placeholder="Enter Property Details"
-          disabled={isFieldDisabled("propertyDetails")} // ✅ uses helper
-          required
-        />
-        {/* Loan Amount */} <label>Property Market Value</label>
-        <input
-          type="text"
-          inputMode="numeric"
-          name="mktValue"
-          placeholder="Enter MKT Value"
-          value={formData.mktValue}
-          onChange={handleChange}
-          disabled={isFieldDisabled("mktValue")} // ✅ uses helper
-          required
-        />
-        {/* Loan Amount */} <label>Required Loan Amt</label>
-        <input
-          type="text"
-          name="amount"
-          placeholder="Enter Amount"
-          value={formData.amount}
-          onChange={handleChange}
-          disabled={isFieldDisabled("amount")} // ✅ uses helper
-          required
-        />{" "}
-        {/* Property details */}
-        <label>Rate of interest Offer</label>
-        <input
-          type="text"
-          name="roi"
-          value={formData.roi}
-          onChange={(e) => setFormData({ ...formData, roi: e.target.value })}
-          placeholder="Enter ROI"
-          disabled={isFieldDisabled("roi")} // ✅ uses helper
-          required
-        />
-        {/* Processing Fees */} <label>Processing Fees</label>
-        <input
-          type="text"
-          name="processingFees"
-          placeholder="Enter processing Fees"
-          value={formData.processingFees}
-          onChange={handleChange}
-          disabled={isFieldDisabled("processingFees")} // ✅ uses helper
-          required
-        />
-        {/* Category */}
-        <label>Category</label>
-        <select
-          name="category"
-          value={formData.category}
-          onChange={handleChange}
-          disabled={isFieldDisabled("category")} // ✅ uses helper
-          required
-        >
-          <option value="">Select Category</option>
-          <option value="salaried">Salaried</option>
-          <option value="self-employed">Self-Employed</option>
-          <option value="Other">Other</option>
-        </select>
-        {/* Show input only if category is Other */}
-        {formData.category === "Other" && (
-          <input
-            type="text"
-            placeholder="Enter other Category"
-            value={formData.otherCategory}
-            disabled={isFieldDisabled("otherCategory")} // ✅ uses helper
-            onChange={(e) =>
-              setFormData({ ...formData, otherCategory: e.target.value })
-            }
-          />
-        )}
-        {/* Audit Data */}
-        <label>Audit Data:</label>
-        <select
-          name="auditData"
-          value={formData.auditData}
-          onChange={handleChange}
-          disabled={isFieldDisabled("auditData")} // ✅ uses helper
-          required
-        >
-          <option value="">Select</option>
-          <option value="Yes">Yes</option>
-          <option value="No">No</option>
-        </select>
-        {/* Consulting */} <label>Consulting</label>
-        <input
-          type="text"
-          name="consulting"
-          placeholder="Enter Consulting"
-          value={formData.consulting}
-          onChange={handleChange}
-          disabled={isFieldDisabled("consulting")} // ✅ uses helper
-          required
-        />
+        {/* ── Section: Product & Loan Details ── */}
+        </div>{/* end cf-section-card: Status */}
+        <div className="cf-section-card">
+        <div className="cf-section-header">💰 Product & Loan Details</div>
+        <div className="cf-grid">
+          <div>
+            {/* Product */} <label>Product</label>
+            <select name="product" value={formData.product} onChange={handleChange} disabled={isFieldDisabled("product")} required>
+              <option value="">Select Product</option>
+              <option value="Home Loan">Home Loan</option>
+              <option value="HL Top Up">Home Loan TOP UP</option>
+              <option value="HL BT + TOP Up">Home Loan BT + TOP UP</option>
+              <option value="Commercial Purchase">Commercial Purchase</option>
+              <option value="LAP">Loan Against Property</option>
+              <option value="Lap Top Up">Loan Against Property BT + TOP UP</option>
+              <option value="Land PUR">Land Purchase</option>
+              <option value="PLOT + CONSTRUCTION">Plot Purchase + Construction</option>
+              <option value="LRD Pur">Lease Rental Discount Purchase</option>
+              <option value="Industrial Purchase">Industrial Purchase</option>
+              <option value="Inventory Funding">Inventory Funding</option>
+              <option value="Project Loan">Project Loan</option>
+              <option value="Other">Other</option>
+            </select>
+            {formData.product === "Other" && (
+              <input type="text" placeholder="Enter Product" value={formData.otherProduct} disabled={isFieldDisabled("otherProduct")} onChange={(e) => setFormData({ ...formData, otherProduct: e.target.value })} />
+            )}
+          </div>
+          <div>
+            {/* Login Date */} <label>Login Date</label>
+            <input type="date" name="loginDate" value={formData.loginDate} max={today} onChange={handleChange} disabled={isFieldDisabled("loginDate")} required />
+          </div>
+          <div>
+            {/* Category */} <label>Category</label>
+            <select name="category" value={formData.category} onChange={handleChange} disabled={isFieldDisabled("category")} required>
+              <option value="">Select Category</option>
+              <option value="salaried">Salaried</option>
+              <option value="self-employed">Self-Employed</option>
+              <option value="Other">Other</option>
+            </select>
+            {formData.category === "Other" && (
+              <input type="text" placeholder="Enter other Category" value={formData.otherCategory} disabled={isFieldDisabled("otherCategory")} onChange={(e) => setFormData({ ...formData, otherCategory: e.target.value })} />
+            )}
+          </div>
+        </div>
+        </div>{/* end cf-section-card: Product */}
 
-        <label>
-          Payout Pass On(%):
-          <input
-            type="text"
-            name="payout"
-            value={formData.payout}
-            onChange={handleChange}
-            placeholder="Enter payout amount"
-            disabled={isFieldDisabled("payout")} // ✅ uses helper
-            required
-          />
-        </label>
-        <label>
-          Expense Amount:
-          <input
-            type="text"
-            name="expenceAmount"
-            value={formData.expenceAmount}
-            onChange={handleChange}
-            disabled={isFieldDisabled("expenceAmount")} // ✅ uses helper
-            placeholder="Enter Expense amount"
-          />
-        </label>
-        <label>
-          Fees Refund Amount:
-          <input
-            type="text"
-            name="feesRefundAmount"
-            value={formData.feesRefundAmount}
-            onChange={handleChange}
-            disabled={isFieldDisabled("feesRefundAmount")} // ✅ uses helper
-            placeholder="Enter Fees Refund amount"
-          />
-        </label>
-        <label>Remark:</label>
-        <input
-          type="text"
-          name="remark"
-          value={formData.remark}
-          onChange={handleChange}
-          placeholder="Enter any remark"
-          disabled={isFieldDisabled("remark")} // ✅ uses helper
-          required
-        />
+        {/* ── Section: Property Details ── */}
+        <div className="cf-section-card">
+        <div className="cf-section-header">🏠 Property Details</div>
+        <div className="cf-grid">
+          <div>
+            <label>Property Type</label>
+            <select name="propertyType" value={formData.propertyType} onChange={handleChange} disabled={isFieldDisabled("propertyType")} required>
+              <option value="">Select Property Type</option>
+              <option value="Residential + Builder Purchase">Residential (Builder Purchase)</option>
+              <option value="Residential(Resale)">Residential (Resale)</option>
+              <option value="Commercial(Builder Purchase)">Commercial (Builder Purchase)</option>
+              <option value="Commercial(Resale)">Commercial (Resale)</option>
+              <option value="Plot Purchase">Plot Purchase</option>
+              <option value="Plot + Construction">Plot + Construction</option>
+              <option value="Industrial">Industrial</option>
+              <option value="Property Not Decide">Property Not Decide</option>
+            </select>
+          </div>
+          <div>
+            <label>Property Details</label>
+            <input type="text" name="propertyDetails" value={formData.propertyDetails} onChange={handleChange} placeholder="Enter Property Details" disabled={isFieldDisabled("propertyDetails")} required />
+          </div>
+          <div>
+            <label>Property Market Value</label>
+            <input type="text" inputMode="numeric" name="mktValue" placeholder="Enter MKT Value" value={formData.mktValue} onChange={handleChange} disabled={isFieldDisabled("mktValue")} required />
+          </div>
+          <div>
+            <label>Required Loan Amount</label>
+            <input type="text" name="amount" placeholder="Enter Amount" value={formData.amount} onChange={handleChange} disabled={isFieldDisabled("amount")} required />
+          </div>
+          <div>
+            <label>Rate of Interest Offer</label>
+            <input type="text" name="roi" value={formData.roi} onChange={(e) => setFormData({ ...formData, roi: e.target.value })} placeholder="Enter ROI" disabled={isFieldDisabled("roi")} required />
+          </div>
+          <div>
+            <label>Processing Fees</label>
+            <input type="text" name="processingFees" placeholder="Enter Processing Fees" value={formData.processingFees} onChange={handleChange} disabled={isFieldDisabled("processingFees")} required />
+          </div>
+        </div>
+        </div>{/* end cf-section-card: Property */}
+
+        {/* ── Section: Financial Info ── */}
+        <div className="cf-section-card">
+        <div className="cf-section-header">📊 Financial Info</div>
+        <div className="cf-grid">
+          <div>
+            <label>Audit Data</label>
+            <select name="auditData" value={formData.auditData} onChange={handleChange} disabled={isFieldDisabled("auditData")} required>
+              <option value="">Select</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div>
+            <label>Consulting</label>
+            <input type="text" name="consulting" placeholder="Enter Consulting" value={formData.consulting} onChange={handleChange} disabled={isFieldDisabled("consulting")} required />
+          </div>
+          <div>
+            <label>Payout Pass On (%)</label>
+            <input type="text" name="payout" value={formData.payout} onChange={handleChange} placeholder="Enter payout amount" disabled={isFieldDisabled("payout")} required />
+          </div>
+          <div>
+            <label>Expense Amount</label>
+            <input type="text" name="expenceAmount" value={formData.expenceAmount} onChange={handleChange} disabled={isFieldDisabled("expenceAmount")} placeholder="Enter Expense amount" />
+          </div>
+          <div>
+            <label>Fees Refund Amount</label>
+            <input type="text" name="feesRefundAmount" value={formData.feesRefundAmount} onChange={handleChange} disabled={isFieldDisabled("feesRefundAmount")} placeholder="Enter Fees Refund amount" />
+          </div>
+          <div>
+            <label>Remark</label>
+            <input type="text" name="remark" value={formData.remark} onChange={handleChange} placeholder="Enter any remark" disabled={isFieldDisabled("remark")} required />
+          </div>
+        </div>
+        </div>{/* end cf-section-card: Financial Info */}
 
         {/* Admin Edit Fields - Only visible in account edit mode */}
         {accountEditMode && (
@@ -2634,83 +2492,88 @@ const formatAmount = (value) => {
           </button>
         )}
       </form>
-      {/* Filters */}
-      <button onClick={handleExcelDownload} className="download-btn">
-        <FaCloudDownloadAlt />
-        Download Master Excel
-      </button>
 
-      <div className="sales-excel-download">
-        <label className=".excel-label">Select Sales for Excel:</label>
-        <select
-          className="excel-select"
-          value={refFilter}
-          onChange={(e) => setRefFilter(e.target.value)}
-        >
-          <option value="">Select Sales</option>
-          {[
-            "Vinay Mishra",
-            "Robins Kapadia",
-            "Dharmesh Bhavsar",
-            "Hardik Bhavsar",
-            "Dhaval Kataria",
-            "Parag Shah",
-          ].map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        <button onClick={handleExportRef} className="download-btn ">
-          <FaCloudDownloadAlt />
-          Download {refFilter || "Selected"} Excel
-        </button>
+      {/* ── Export Toolbar ── */}
+      <div className="export-toolbar">
+
+        {/* Master Excel */}
+        <div className="export-card export-card--simple">
+          <div className="export-card-icon">📊</div>
+          <div className="export-card-info">
+            <span className="export-card-title">Master Export</span>
+            <span className="export-card-desc">All applications data</span>
+          </div>
+          <button onClick={handleExcelDownload} className="export-btn export-btn--green export-btn--full">
+            <FaCloudDownloadAlt /> Download
+          </button>
+        </div>
+
+        {/* Sales Excel */}
+        <div className="export-card">
+          <div className="export-card-icon">👤</div>
+          <div className="export-card-info">
+            <span className="export-card-title">Sales Export</span>
+            <span className="export-card-desc">Filter by sales person</span>
+          </div>
+          <div className="export-card-controls">
+            <select
+              className="export-select"
+              value={refFilter}
+              onChange={(e) => setRefFilter(e.target.value)}
+            >
+              <option value="">Select Sales</option>
+              {["Vinay Mishra","Robins Kapadia","Dharmesh Bhavsar","Hardik Bhavsar","Dhaval Kataria","Parag Shah"].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <button onClick={handleExportRef} className="export-btn export-btn--green">
+              <FaCloudDownloadAlt /> Download
+            </button>
+          </div>
+        </div>
+
+        {/* Monthly Excel */}
+        <div className="export-card">
+          <div className="export-card-icon">📅</div>
+          <div className="export-card-info">
+            <span className="export-card-title">Monthly Report</span>
+            <span className="export-card-desc">Generate by month</span>
+          </div>
+          <div className="export-card-controls">
+            <input
+              type="month"
+              className="export-select"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            />
+            <button
+              onClick={handleMonthlyExcelDownload}
+              className="export-btn export-btn--green"
+              disabled={monthlyExcelLoading}
+            >
+              <FaCloudDownloadAlt /> {monthlyExcelLoading ? "Generating..." : "Generate"}
+            </button>
+          </div>
+        </div>
+
+        {/* Account Excel */}
+        <div className="export-card export-card--simple">
+          <div className="export-card-icon">🧾</div>
+          <div className="export-card-info">
+            <span className="export-card-title">Account Export</span>
+            <span className="export-card-desc">Financial records</span>
+          </div>
+          <button onClick={handleAccountExcelDownload} className="export-btn export-btn--green export-btn--full">
+            <FaCloudDownloadAlt /> Download
+          </button>
+        </div>
+
       </div>
 
-      {/* Monthly Excel Download Section */}
-      <div className="sales-excel-download" style={{ marginTop: "20px", borderTop: "2px solid #ddd", paddingTop: "20px" }}>
-        <label className=".excel-label">Generate Monthly Report:</label>
-        <input
-          type="month"
-          className="excel-select"
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          placeholder="YYYY-MM"
-          style={{
-            padding: "10px",
-            fontSize: "14px",
-            borderRadius: "6px",
-            border: "1px solid #d0d0d0",
-            marginRight: "10px",
-            minWidth: "150px"
-          }}
-        />
-        <button 
-          onClick={handleMonthlyExcelDownload} 
-          className="download-btn"
-          disabled={monthlyExcelLoading}
-          style={{
-            opacity: monthlyExcelLoading ? 0.6 : 1,
-            cursor: monthlyExcelLoading ? "not-allowed" : "pointer"
-          }}
-        >
-          <FaCloudDownloadAlt />
-          {monthlyExcelLoading ? "Generating..." : "Generate Monthly Excel"}
-        </button>
+      {/* ── Applications List Header ── */}
+      <div className="apps-list-header">
+        <h2 className="apps-list-title">Applications List</h2>
       </div>
-
-      {/* Account Excel Download Section */}
-      <div className="sales-excel-download" style={{ marginTop: "20px", borderTop: "2px solid #ddd", paddingTop: "20px" }}>
-        <label className=".excel-label">Account Excel:</label>
-        <button onClick={handleAccountExcelDownload} className="download-btn">
-          <FaCloudDownloadAlt />
-          Download Account Excel
-        </button>
-      </div>
-
-      <h2 style={{ display: "flex", justifyContent: "center" }}>
-        Applications List
-      </h2>
       <div className="filters">
         <label>
           From:
@@ -2781,6 +2644,35 @@ const formatAmount = (value) => {
             }
           />
         </label>
+        {(filters.fromDate || filters.toDate || filters.sales || filters.status || filters.customerName) && (
+          <button
+            type="button"
+            onClick={() => {
+              setFilters({
+                fromDate: "",
+                toDate: "",
+                sales: "",
+                status: "",
+                customerName: "",
+              });
+            }}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#ef4444",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "14px",
+              transition: "background-color 0.2s",
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = "#dc2626"}
+            onMouseLeave={(e) => e.target.style.backgroundColor = "#ef4444"}
+          >
+            ✕ Clear All Filters
+          </button>
+        )}
       </div>
       <div className="card-container">
   {filteredApps.length === 0 ? (
@@ -2807,6 +2699,7 @@ const formatAmount = (value) => {
       Array.isArray(app.partDisbursed) && app.partDisbursed.length > 0
         ? app.partDisbursed[app.partDisbursed.length - 1]
         : null;
+    const visibleLastChanges = getDisplayChanges(app.lastChanges);
 
     return (
       <div key={app._id} className="card">
@@ -2865,9 +2758,17 @@ const formatAmount = (value) => {
             </div>
             
             <div className="cust-row-bottom">
-              <div className="info-row">
-                 <span className="info-label">Ref</span>
-                 <span className="info-value highlight-yellow">{app.ref}</span>
+              <div className="cust-ref-group">
+                <div className="info-row">
+                   <span className="info-label">Ref</span>
+                   <span className="info-value highlight-yellow">{app.ref}</span>
+                </div>
+              </div>
+              <div className="cust-source-group">
+                <div className="info-row">
+                   <span className="info-label">Source</span>
+                   <span className="info-value highlight-yellow">{app.sourceChannel === "Other" ? app.otherSourceChannel : app.sourceChannel}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -2886,10 +2787,6 @@ const formatAmount = (value) => {
                 <span className="info-label">Bank</span>
                 <span className="info-value highlight-yellow">{app.bank}</span>
               </div>
-              <div className="info-row">
-                <span className="info-label">Login Date</span>
-                <span className="info-value">{safeFormatDate(app.loginDate)}</span>
-              </div>
             </div>
             <div className="layout-col-right">
               <div className="info-row">
@@ -2901,11 +2798,8 @@ const formatAmount = (value) => {
                 <span className="info-value">{app.bankerName}</span>
               </div>
               <div className="info-row">
-                <span className="info-label">Source</span>
-                <span className="info-value">{app.sourceChannel === "Other" ? app.otherSourceChannel : app.sourceChannel}</span>
-              </div>
-              <div className="info-row empty-row">
-                {/* For symmetry */}
+                <span className="info-label">Login Date</span>
+                <span className="info-value">{safeFormatDate(app.loginDate)}</span>
               </div>
             </div>
           </div>
@@ -3234,12 +3128,12 @@ const formatAmount = (value) => {
           })()}
 
           {/* Change Tracker Bar - Persists until Approved */}
-          {app.lastChanges && Object.keys(app.lastChanges).length > 0 && app.approvalStatus !== "Approved by SB" && (
+          {Object.keys(visibleLastChanges).length > 0 && app.approvalStatus !== "Approved by SB" && (
             <div className="card-change-bar" style={{ margin: "4px 0 0 0", borderRadius: "0", borderLeft: "none", borderRight: "none" }}>
               <div className="card-change-left">
                 <span className="card-change-badge">
                   <span className="change-dot"></span>
-                  {Object.keys(app.lastChanges).length} change{Object.keys(app.lastChanges).length !== 1 ? 's' : ''}
+                  {Object.keys(visibleLastChanges).length} change{Object.keys(visibleLastChanges).length !== 1 ? 's' : ''}
                 </span>
                 {app.lastChangedAt && (
                   <span className="card-change-time">
@@ -3251,7 +3145,7 @@ const formatAmount = (value) => {
                 type="button"
                 className="card-view-changes-btn"
                 onClick={() => {
-                  setSelectedCardChanges(app.lastChanges);
+                  setSelectedCardChanges(visibleLastChanges);
                   setIsChangesModalOpen(true);
                 }}
               >
@@ -3371,5 +3265,3 @@ const formatAmount = (value) => {
 };
 
 export default CustForm;
-
-

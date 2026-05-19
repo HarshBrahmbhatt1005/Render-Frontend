@@ -1,6 +1,6 @@
 import "./App.css";
 import MainPage from "./components/mainPage";
-import {  HashRouter, Route, Router, Routes } from "react-router-dom";
+import { HashRouter, Route, Router, Routes } from "react-router-dom";
 import BuilderVisitForm from "./components/real-Estate-form";
 import CustForm from "./components/cust-login-form";
 import RealestateLeadForm from "./components/RealestateLeadForm";

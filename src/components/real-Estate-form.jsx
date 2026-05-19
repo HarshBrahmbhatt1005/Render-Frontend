@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
-import "../css/BuilderVisitForm.css"; // tumhara CSS
+import "../css/BuilderVisitForm.css"; //CSS
 import RejectionModal from "./RejectionModal";
 import EmailSendingIndicator from "./EmailSendingIndicator";
 import SubmissionLoader from "./SubmissionLoader";
@@ -8,6 +8,7 @@ import { sendForm2Notification, sendLevel2ApprovalNotification, validateEmailCon
 
 const BuilderVisitForm = () => {
   const API = `${import.meta.env.VITE_API_URL}/api/builder-visits`;
+  const RESIDENTIAL_SIZE_OPTIONS = ["1 RK", "1 BHK", "1.5 BHK", "2 BHK", "2.5 BHK", "3 BHK", "4 BHK", "5 BHK", "6 BHK", "7 BHK"];
 
   const initialForm = {
     builderName: "",
@@ -79,6 +80,8 @@ const BuilderVisitForm = () => {
   const [filterManager, setFilterManager] = useState("");
   const [filterDate, setFilterDate] = useState("");
   const [showAllCards, setShowAllCards] = useState(false);
+  const [expandedProps, setExpandedProps] = useState({}); // track which card's properties are expanded
+  const [expandedPropFields, setExpandedPropFields] = useState({}); // track which individual property fields are expanded
 
   // State for rejection remarks modal
   const [rejectionModal, setRejectionModal] = useState({
@@ -91,10 +94,10 @@ const BuilderVisitForm = () => {
   // Email notification states
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  
+
   // Form submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // USP dropdown state
   const [uspDropdownOpen, setUspDropdownOpen] = useState(false);
   const uspDropdownRef = useRef(null);
@@ -126,14 +129,14 @@ const BuilderVisitForm = () => {
   // 💡 Format submission date and time
   const formatSubmissionDateTime = (isoString) => {
     if (!isoString) return "Not available";
-    
+
     const date = new Date(isoString);
-    
+
     // Format date as DD-MM-YYYY
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    
+
     // Format time as HH:MM AM/PM
     let hours = date.getHours();
     const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -141,7 +144,7 @@ const BuilderVisitForm = () => {
     hours = hours % 12;
     hours = hours ? hours : 12; // 0 should be 12
     const formattedTime = `${hours}:${minutes} ${ampm}`;
-    
+
     return `${day}-${month}-${year} at ${formattedTime}`;
   };
 
@@ -152,7 +155,7 @@ const BuilderVisitForm = () => {
       const fetchURL = isAll ? `${API}?view=all` : API;
       const res = await axios.get(fetchURL);
       let data = Array.isArray(res.data) ? res.data : [];
-      
+
       // Find the earliest date from cards that have submittedAt
       let earliestDate = null;
       data.forEach((card) => {
@@ -163,12 +166,12 @@ const BuilderVisitForm = () => {
           }
         }
       });
-      
+
       // If we found an earliest date, set old cards (without submittedAt) to one day before
       if (earliestDate) {
         const oneDayBefore = new Date(earliestDate);
         oneDayBefore.setDate(oneDayBefore.getDate() - 1);
-        
+
         data = data.map((card) => {
           if (!card.submittedAt) {
             return {
@@ -179,7 +182,7 @@ const BuilderVisitForm = () => {
           return card;
         });
       }
-      
+
       setVisits(data);
     } catch (err) {
       console.error("Fetch error:", err);
@@ -195,7 +198,7 @@ const BuilderVisitForm = () => {
   // Helper function to scroll to a field and highlight it
   const scrollToField = (fieldName, propertyIndex = null) => {
     let element;
-    
+
     if (propertyIndex !== null) {
       // For property-specific fields like PLC, FRC - find the radio group container
       const radioInputs = document.querySelectorAll(`input[name="${fieldName}-${propertyIndex}"]`);
@@ -207,32 +210,32 @@ const BuilderVisitForm = () => {
       // For regular form fields
       element = document.querySelector(`[name="${fieldName}"], input[name="${fieldName}"], select[name="${fieldName}"], textarea[name="${fieldName}"]`);
     }
-    
+
     if (element) {
       // Scroll to the element
-      element.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
       });
-      
+
       // Add a red border temporarily to highlight the field
       element.style.border = '2px solid red';
       element.style.boxShadow = '0 0 10px rgba(255, 0, 0, 0.5)';
       element.style.borderRadius = '4px';
-      
+
       // Focus the first input in the element if it's focusable
       const focusableInput = element.querySelector('input, select, textarea');
       if (focusableInput && focusableInput.focus) {
         setTimeout(() => focusableInput.focus(), 500);
       }
-      
+
       // Remove the highlight after 3 seconds
       setTimeout(() => {
         element.style.border = '';
         element.style.boxShadow = '';
         element.style.borderRadius = '';
       }, 3000);
-      
+
       return true;
     }
     return false;
@@ -241,7 +244,7 @@ const BuilderVisitForm = () => {
   // --- FORM INPUT HANDLERS ---
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
-    
+
     // When development type changes, automatically add first property AND clear floor height fields
     if (name === "developmentType" && value) {
       setFormData((prev) => {
@@ -265,6 +268,7 @@ const BuilderVisitForm = () => {
               size: "N/A",
               category: "N/A",
               floor: "",
+              frontage: "",
               sqft: "",
               sqyd: "",
               basicRate: "",
@@ -284,6 +288,7 @@ const BuilderVisitForm = () => {
             {
               type: "Residential",
               size: "",
+              customSize: "",
               category: "",
               floor: "",
               sqft: "",
@@ -302,9 +307,9 @@ const BuilderVisitForm = () => {
           ];
         }
 
-        const newData = { 
-          ...prev, 
-          [name]: value, 
+        const newData = {
+          ...prev,
+          [name]: value,
           propertySizes: keptProperties,
           // Clear all floor height fields
           clearFloorHeight: "",
@@ -317,7 +322,7 @@ const BuilderVisitForm = () => {
         if (keptProperties.length > 0) {
           return newData;
         }
-        
+
         // Auto-add first property based on type (fresh start for unrelated transitions)
         if (value === "Residential + Commercial") {
           // Add one Residential and one Commercial property
@@ -327,8 +332,10 @@ const BuilderVisitForm = () => {
               {
                 type: "Residential",
                 size: "",
+                customSize: "",
                 category: "",
                 floor: "",
+                frontage: "",
                 sqft: "",
                 sqyd: "",
                 basicRate: "",
@@ -346,6 +353,7 @@ const BuilderVisitForm = () => {
                 size: "N/A",
                 category: "N/A",
                 floor: "",
+                frontage: "",
                 sqft: "",
                 sqyd: "",
                 basicRate: "",
@@ -370,6 +378,7 @@ const BuilderVisitForm = () => {
                 size: "N/A",
                 category: "N/A",
                 floor: "",
+                frontage: "",
                 sqft: "",
                 sqyd: "",
                 basicRate: "",
@@ -392,8 +401,10 @@ const BuilderVisitForm = () => {
               {
                 type: value,
                 size: value === "Commercial" ? "N/A" : "",
+                customSize: "",
                 category: value === "Commercial" ? "N/A" : "",
                 floor: "",
+                frontage: "",
                 sqft: "",
                 sqyd: "",
                 basicRate: "",
@@ -412,7 +423,7 @@ const BuilderVisitForm = () => {
       });
       return;
     }
-    
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
 
@@ -425,7 +436,8 @@ const BuilderVisitForm = () => {
     const { name, value } = e.target;
     setFormData((prev) => {
       const updated = [...prev.propertySizes];
-      
+      const currentProperty = updated[index] || {};
+
       // Auto-calculate sqyd from sqft (divide by 9)
       if (name === "sqft" && value) {
         // Use regex to find all numbers in the string and convert them
@@ -436,15 +448,15 @@ const BuilderVisitForm = () => {
           }
           return match;
         });
-        
-        updated[index] = { 
-          ...updated[index], 
+
+        updated[index] = {
+          ...updated[index],
           sqft: value,
           sqyd: convertedValue
         };
         return { ...prev, propertySizes: updated };
       }
-      
+
       // Auto-calculate sqft from sqyd (multiply by 9)
       if (name === "sqyd" && value) {
         // Use regex to find all numbers in the string and convert them
@@ -455,15 +467,40 @@ const BuilderVisitForm = () => {
           }
           return match;
         });
-        
-        updated[index] = { 
-          ...updated[index], 
+
+        updated[index] = {
+          ...updated[index],
           sqyd: value,
           sqft: convertedValue
         };
         return { ...prev, propertySizes: updated };
       }
-      
+
+      if (name === "frontage") {
+        updated[index] = {
+          ...currentProperty,
+          frontage: value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1"),
+        };
+        return { ...prev, propertySizes: updated };
+      }
+
+      if (name === "size") {
+        if (value === "Other") {
+          updated[index] = {
+            ...currentProperty,
+            size: "Other",
+            customSize: currentProperty.customSize || "",
+          };
+        } else {
+          updated[index] = {
+            ...currentProperty,
+            size: value,
+            customSize: "",
+          };
+        }
+        return { ...prev, propertySizes: updated };
+      }
+
       // Default behavior for other fields
       updated[index] = { ...updated[index], [name]: value };
       return { ...prev, propertySizes: updated };
@@ -483,13 +520,13 @@ const BuilderVisitForm = () => {
         plc: "",
         frc: "",
       };
-      
+
       // Look for existing property of the same type with filled values
-      const firstSameType = prev.propertySizes.find(prop => 
-        prop.type === type && 
+      const firstSameType = prev.propertySizes.find(prop =>
+        prop.type === type &&
         (prop.basicRate || prop.aecAuda || prop.selldedAmount || prop.maintenance || prop.maintenanceDeposit || prop.plc || prop.frc)
       );
-      
+
       if (firstSameType) {
         prefillValues = {
           basicRate: firstSameType.basicRate || "",
@@ -501,7 +538,7 @@ const BuilderVisitForm = () => {
           frc: firstSameType.frc || "",
         };
       }
-      
+
       return {
         ...prev,
         propertySizes: [
@@ -509,6 +546,7 @@ const BuilderVisitForm = () => {
           {
             type,
             size: type === "Plot" ? "N/A" : "",
+            customSize: "",
             category: type === "Plot" ? "N/A" : "",
             floor: "",
             sqft: "",
@@ -533,11 +571,11 @@ const BuilderVisitForm = () => {
     const confirmed = window.confirm(
       `Are you sure you want to delete this ${type} property?\n\nAll entered data for this property will be lost.`
     );
-    
+
     if (!confirmed) {
       return; // User cancelled, don't remove
     }
-    
+
     setFormData((prev) => ({
       ...prev,
       propertySizes: prev.propertySizes.filter((_, i) => i !== index),
@@ -550,6 +588,10 @@ const BuilderVisitForm = () => {
 
     const formattedPropertySizes = (app.propertySizes || []).map((p) => ({
       ...p,
+      customSize:
+        p.type === "Residential" && p.size && !RESIDENTIAL_SIZE_OPTIONS.includes(p.size)
+          ? p.size
+          : p.customSize || "",
       type:
         p.type ||
         (app.developmentType === "Residential + Commercial"
@@ -557,8 +599,8 @@ const BuilderVisitForm = () => {
             ? "Commercial"
             : "Residential"
           : app.developmentType === "Plot"
-          ? "Plot"
-          : app.developmentType),
+            ? "Plot"
+            : app.developmentType),
       // Keep boxPrice as-is (can contain text like "1.5 Cr")
       boxPrice: p.boxPrice || "",
     }));
@@ -582,65 +624,69 @@ const BuilderVisitForm = () => {
   // --- FORM SUBMIT / UPDATE ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Prevent multiple submissions
     if (isSubmitting) {
       console.log("Form is already submitting, ignoring duplicate click");
       return;
     }
-    
+
     // Validate development type is selected
     if (!formData.developmentType) {
       console.warn("Validation failed: Type of Development not selected");
       scrollToField("developmentType");
       return;
     }
-    
+
     // Validate Stage of Construction
     if (!formData.stageOfConstruction) {
       console.warn("Validation failed: Stage of Construction not selected");
       scrollToField("stageOfConstruction");
       return;
     }
-    
+
     // Validate Project Loan Awail
     if (!formData.financingRequirements) {
       console.warn("Validation failed: Project Loan Awail not selected");
       scrollToField("financingRequirements");
       return;
     }
-    
+
     // Validate Enquiry Type
     if (!formData.enquiryType) {
       console.warn("Validation failed: Enquiry Type not selected");
       scrollToField("enquiryType");
       return;
     }
-    
+
     // Validate Remark
     if (!formData.remark || formData.remark.trim() === "") {
       console.warn("Validation failed: Remark is empty");
       scrollToField("remark");
       return;
     }
-    
+
     // Validate Total Amenities
     if (!formData.totalAmenities || formData.totalAmenities === "") {
       console.warn("Validation failed: Total Amenities is empty");
       scrollToField("totalAmenities");
       return;
     }
-    
+
     // Validate Area Type
     if (!formData.areaType) {
       console.warn("Validation failed: Area Type not selected");
       scrollToField("areaType");
       return;
     }
-    
+
     // Validate PLC and FRC for all properties
     for (let i = 0; i < formData.propertySizes.length; i++) {
       const prop = formData.propertySizes[i];
+      if (prop.type === "Residential" && prop.size === "Other" && !String(prop.customSize || "").trim()) {
+        console.warn(`Validation failed: Custom size not entered for Residential Property ${i + 1}`);
+        return;
+      }
       if (!prop.plc) {
         console.warn(`Validation failed: PLC not selected for Property ${i + 1}`);
         scrollToField("plc", i);
@@ -652,18 +698,22 @@ const BuilderVisitForm = () => {
         return;
       }
     }
-    
+
     if (formData.officePersonNumber && !/^\d{10}$/.test(formData.officePersonNumber)) {
       console.warn("Validation failed: Invalid phone number");
       return;
     }
-    
+
     // Set submitting state to disable button and show loading
     setIsSubmitting(true);
-    
+
     try {
       const cleanPropertySizes = formData.propertySizes.map((p) => ({
         ...p,
+        size:
+          p.type === "Residential" && p.size === "Other"
+            ? String(p.customSize || "").trim()
+            : p.size,
         regularPrice: (p.regularPrice || "").replace(/,/g, ""),
         maintenance: (p.maintenance || "").replace(/,/g, ""),
         maintenanceDeposit: (p.maintenanceDeposit || "").replace(/,/g, ""),
@@ -696,57 +746,57 @@ const BuilderVisitForm = () => {
       };
 
       const isEditing = !!editingId;
-      
+
       if (editingId) {
         // Wait for backend to complete update (with 20 second timeout)
-        await axios.patch(`${API}/${editingId}`, cleanData, { 
+        await axios.patch(`${API}/${editingId}`, cleanData, {
           timeout: 20000,
           headers: {
             'Content-Type': 'application/json'
           }
         });
-        
+
         // Clear editing state and reset form after successful update
         setEditingId(null);
         setFormData(initialForm);
         setEmailSent(false);
-        
+
         // Fetch updated visits list
         await fetchVisits();
       } else {
         // New submission - save to database first and wait for response (with 20 second timeout)
         console.log("Sending POST request to:", API);
-        
+
         // Start the POST request but don't wait for it
-        const postPromise = axios.post(API, cleanData, { 
+        const postPromise = axios.post(API, cleanData, {
           timeout: 20000,
           headers: {
             'Content-Type': 'application/json'
           }
         });
-        
+
         // Start polling for new data immediately (check every 2 seconds)
         let dataFound = false;
         const pollInterval = setInterval(async () => {
           if (dataFound) return;
-          
+
           console.log("Checking if data was saved...");
           const beforeCount = visits.length;
           await fetchVisits();
-          
+
           // Check if new data appeared
           setTimeout(() => {
             const afterCount = visits.length;
             if (afterCount > beforeCount && !dataFound) {
               dataFound = true;
               clearInterval(pollInterval);
-              
+
               // Data found! Hide loader
               setIsSubmitting(false);
-              
+
               // Reset form
               setFormData(initialForm);
-              
+
               // Send email notification in background
               if (validateEmailConfig() && !emailSent) {
                 setEmailSending(true);
@@ -768,15 +818,15 @@ const BuilderVisitForm = () => {
             }
           }, 300);
         }, 2000); // Check every 2 seconds
-        
+
         // Also wait for the actual response (in case it comes back)
         try {
           await postPromise;
-          
+
           if (!dataFound) {
             clearInterval(pollInterval);
             dataFound = true;
-            
+
             // Send email notification
             if (validateEmailConfig() && !emailSent) {
               setEmailSending(true);
@@ -800,10 +850,10 @@ const BuilderVisitForm = () => {
           // If timeout or error, wait a bit for polling to find the data
           if (postError.code === 'ECONNABORTED') {
             console.warn("⚠️ Request timed out, waiting for polling to confirm save...");
-            
+
             // Give polling 5 more seconds to find the data
             await new Promise(resolve => setTimeout(resolve, 5000));
-            
+
             if (!dataFound) {
               clearInterval(pollInterval);
               throw new Error("Data was not saved. Please try again.");
@@ -811,11 +861,11 @@ const BuilderVisitForm = () => {
             // If dataFound is true, polling already handled success
             return;
           }
-          
+
           clearInterval(pollInterval);
           throw postError; // Re-throw other errors
         }
-        
+
         clearInterval(pollInterval);
       }
 
@@ -824,12 +874,12 @@ const BuilderVisitForm = () => {
         setFormData(initialForm);
         setEmailSent(false);
       }
-      
+
       // Fetch updated visits list (if not already fetched)
       if (!isEditing) {
         await fetchVisits();
       }
-      
+
     } catch (err) {
       console.error("❌ Submit Error:", err);
       console.error("Error details:", {
@@ -843,7 +893,7 @@ const BuilderVisitForm = () => {
           timeout: err.config?.timeout
         }
       });
-      
+
       // Log error but don't show alert
       if (err.code === 'ECONNABORTED') {
         console.error("❌ Request timeout: The server is taking too long to respond.");
@@ -867,7 +917,7 @@ const BuilderVisitForm = () => {
 
     try {
       const response = await axios.patch(`${API}/${id}/approve`, { password, level });
-      
+
       // ✅ Optimistically update local state immediately for instant UI update
       const now = new Date().toISOString();
       setVisits((prev) =>
@@ -890,7 +940,7 @@ const BuilderVisitForm = () => {
       // If Level 2 approval successful, send email notification in background (non-blocking)
       if (level === 2 && validateEmailConfig()) {
         const approvedVisit = visits.find(v => v._id === id);
-        
+
         if (approvedVisit) {
           const emailData = {
             projectName: approvedVisit.projectName,
@@ -905,7 +955,7 @@ const BuilderVisitForm = () => {
             level1By: approvedVisit.approval?.level1?.by,
             level1At: approvedVisit.approval?.level1?.at,
           };
-          
+
           sendLevel2ApprovalNotification(emailData)
             .then((emailResult) => {
               if (emailResult.success) {
@@ -961,7 +1011,7 @@ const BuilderVisitForm = () => {
         level: rejectionModal.level,
         comment: trimmedRemarks
       });
-      
+
       // Close modal and refresh visits on success
       setRejectionModal({
         isOpen: false,
@@ -969,11 +1019,11 @@ const BuilderVisitForm = () => {
         level: null,
         remarks: ""
       });
-      
+
       fetchVisits();
     } catch (err) {
       console.error("❌ Rejection failed:", err);
-      
+
       // Display error message on validation failure
       if (err.response && err.response.status === 401) {
         alert("❌ Invalid password!");
@@ -1059,14 +1109,16 @@ const BuilderVisitForm = () => {
 
   return (
     <div className="form-container">
-      <h2 className="form-title">Project Login Form</h2>
-      
+      <div className="form-title-row">
+        <h2 className="form-title">Project Login Form</h2>
+      </div>
+
       {/* Submission Loading Modal */}
       <SubmissionLoader isVisible={isSubmitting} isEditing={!!editingId} />
-      
+
       {/* Email Sending Indicator */}
       <EmailSendingIndicator isVisible={emailSending} />
-      
+
       {/* Rejection Modal */}
       <RejectionModal
         isOpen={rejectionModal.isOpen}
@@ -1074,7 +1126,7 @@ const BuilderVisitForm = () => {
         onCancel={cancelRejection}
         level={rejectionModal.level}
       />
-      
+
       <form
         onSubmit={handleSubmit}
         onKeyDown={(e) => {
@@ -1088,7 +1140,7 @@ const BuilderVisitForm = () => {
       >
         <div className="form-grid">
           <label>
-           Developer Group Name:<span className="required-asterisk">*</span>
+            Developer Group Name:<span className="required-asterisk">*</span>
             <input
               type="text"
               placeholder="Enter Group Name"
@@ -1178,19 +1230,19 @@ const BuilderVisitForm = () => {
 
           {/* -------------------- EXECUTIVES SECTION -------------------- */}
           <div className="full-width" style={{ gridColumn: "span 2", marginBottom: "20px" }}>
-            <label style={{ 
-              display: "block", 
+            <label style={{
+              display: "block",
               marginBottom: "10px",
               fontWeight: "500",
               fontSize: "14px"
             }}>
               Executive Name & Number:
             </label>
-            
+
             {formData.executives && formData.executives.length > 0 ? (
-              <div style={{ 
-                border: "1px solid #ddd", 
-                padding: "15px", 
+              <div style={{
+                border: "1px solid #ddd",
+                padding: "15px",
                 borderRadius: "8px",
                 backgroundColor: "#f9f9f9"
               }}>
@@ -1225,7 +1277,7 @@ const BuilderVisitForm = () => {
                             executives: updated,
                           }));
                         }}
-                        style={{ 
+                        style={{
                           width: "100%",
                           padding: "10px",
                           border: "1px solid #ccc",
@@ -1253,7 +1305,7 @@ const BuilderVisitForm = () => {
                         }}
                         inputMode="numeric"
                         maxLength={10}
-                        style={{ 
+                        style={{
                           width: "100%",
                           padding: "10px",
                           border: "1px solid #ccc",
@@ -1323,9 +1375,9 @@ const BuilderVisitForm = () => {
               <button
                 type="button"
                 onClick={() => {
-                  setFormData((prev) => ({ 
-                    ...prev, 
-                    executives: [{ name: "", number: "" }] 
+                  setFormData((prev) => ({
+                    ...prev,
+                    executives: [{ name: "", number: "" }]
                   }));
                 }}
                 style={{
@@ -1382,7 +1434,7 @@ const BuilderVisitForm = () => {
             .map((type) => {
               // Filter properties of this type
               const propertiesOfType = formData.propertySizes.filter(p => p.type === type);
-              
+
               return (
                 <div key={type} className="property-section">
                   <h3 className="section-title">
@@ -1394,7 +1446,7 @@ const BuilderVisitForm = () => {
                     <>
                       {formData.propertySizes.map((prop, index) => {
                         if (prop.type !== type) return null; // Only render matching type
-                        
+
                         // Calculate the correct property number for this type
                         const typeIndex = formData.propertySizes
                           .slice(0, index)
@@ -1402,16 +1454,16 @@ const BuilderVisitForm = () => {
 
                         return (
                           <div key={index} className="conditional-fields">
-                            <div style={{ 
-                              display: "flex", 
-                              justifyContent: "space-between", 
+                            <div style={{
+                              display: "flex",
+                              justifyContent: "space-between",
                               alignItems: "center",
                               marginBottom: "15px"
                             }}>
                               <h4 style={{ margin: 0 }}>
                                 {type} Property {typeIndex}
                               </h4>
-                              
+
                               {/* Remove button - only show if more than 1 property of this type */}
                               {propertiesOfType.length > 1 && (
                                 <button
@@ -1447,19 +1499,34 @@ const BuilderVisitForm = () => {
                                   Size:<span className="required-asterisk">*</span>
                                   <select
                                     name="size"
-                                    value={prop.size}
+                                    value={
+                                      prop.size === "Other" || (prop.size && !RESIDENTIAL_SIZE_OPTIONS.includes(prop.size))
+                                        ? "Other"
+                                        : prop.size
+                                    }
                                     onChange={(e) => handlePropertyChange(index, e)}
                                     required
                                   >
                                     <option value="">Select</option>
-                                    <option>2 BHK </option>
-                                    <option>3 BHK </option>
-                                    <option>4 BHK </option>
-                                    <option>5 BHK </option>
-                                    <option>6 BHK </option>
-                                    <option>7 BHK </option>
+                                    {RESIDENTIAL_SIZE_OPTIONS.map((sizeOption) => (
+                                      <option key={sizeOption} value={sizeOption}>{sizeOption}</option>
+                                    ))}
+                                    <option value="Other">Other</option>
                                   </select>
                                 </label>
+                                {(prop.size === "Other" || (prop.size && !RESIDENTIAL_SIZE_OPTIONS.includes(prop.size))) && (
+                                  <label>
+                                    Custom BHK Type:<span className="required-asterisk">*</span>
+                                    <input
+                                      type="text"
+                                      name="customSize"
+                                      placeholder="Enter custom size (e.g., 3.5 BHK)"
+                                      value={prop.customSize || (prop.size !== "Other" ? prop.size : "")}
+                                      onChange={(e) => handlePropertyChange(index, e)}
+                                      required
+                                    />
+                                  </label>
+                                )}
                                 <label>
                                   Category:<span className="required-asterisk">*</span>
                                   <select
@@ -1505,7 +1572,7 @@ const BuilderVisitForm = () => {
                                     <option value="Other">Other</option>
                                   </select>
                                 </label>
-                                
+
                                 {(prop.floor === "Other" || (prop.floor && !["Ground Floor", "1st Floor", "2nd Floor", "Office", ""].includes(prop.floor))) && (
                                   <label>
                                     Custom Floor Name:<span className="required-asterisk">*</span>
@@ -1561,6 +1628,22 @@ const BuilderVisitForm = () => {
                                 />
                               </label>
                             ))}
+                            
+                            {/* Frontage field - only for Commercial */}
+                            {type === "Commercial" && (
+                              <label>
+                                Frontage (Ft.):<span className="required-asterisk">*</span>
+                                <input
+                                  type="text"
+                                  name="frontage"
+                                  inputMode="decimal"
+                                  placeholder="Enter frontage in Ft"
+                                  value={prop.frontage || ""}
+                                  onChange={(e) => handlePropertyChange(index, e)}
+                                  required
+                                />
+                              </label>
+                            )}
 
                             {/* PLC Radio Buttons */}
                             <div className="radio-group" style={{ gridColumn: "span 1" }}>
@@ -1660,7 +1743,7 @@ const BuilderVisitForm = () => {
                 </div>
               );
             })}
-          
+
           {/* -------------------- AREA TYPE (FORM LEVEL) -------------------- */}
           <div className="radio-group full-width">
             <p className="radio-label">Area Type:<span className="required-asterisk">*</span></p>
@@ -1678,6 +1761,16 @@ const BuilderVisitForm = () => {
               <input
                 type="radio"
                 name="areaType"
+                value="Built-Up"
+                checked={formData.areaType === "Built-Up"}
+                onChange={handleChange}
+              />
+              Built-Up
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="areaType"
                 value="Carpet"
                 checked={formData.areaType === "Carpet"}
                 onChange={handleChange}
@@ -1685,7 +1778,7 @@ const BuilderVisitForm = () => {
               Carpet
             </label>
           </div>
-          
+
           {/* -------------------- CLEAR FLOOR HEIGHT (DYNAMIC BASED ON DEVELOPMENT TYPE) -------------------- */}
           {formData.developmentType === "Residential" && (
             <label className="full-width">
@@ -1754,7 +1847,7 @@ const BuilderVisitForm = () => {
               </label>
             </>
           )}
-          
+
           {/* <div className="radio-group full-width">
             <p className="radio-label"> Price Negotiable:</p>
             <label>
@@ -1821,18 +1914,18 @@ const BuilderVisitForm = () => {
           </div>
           {(formData.developmentType === "Residential" ||
             formData.developmentType === "Residential + Commercial") && (
-            <label className="full-width">
-              Community:<span className="required-asterisk">*</span>
-              <input
-                placeholder="Enter Community"
-                type="text"
-                name="gentry"
-                value={formData.gentry}
-                onChange={handleChange}
-                required
-              />
-            </label>
-          )}
+              <label className="full-width">
+                Community:<span className="required-asterisk">*</span>
+                <input
+                  placeholder="Enter Community"
+                  type="text"
+                  name="gentry"
+                  value={formData.gentry}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+            )}
 
           <label>
             Expected Soft Possesion:<span className="required-asterisk">*</span>
@@ -1993,8 +2086,8 @@ const BuilderVisitForm = () => {
                     </span>
                   )}
                 </div>
-                <div style={{ 
-                  marginLeft: "12px", 
+                <div style={{
+                  marginLeft: "12px",
                   fontSize: "18px",
                   color: uspDropdownOpen ? "#1976d2" : "#666",
                   transition: "all 0.2s ease",
@@ -2063,17 +2156,19 @@ const BuilderVisitForm = () => {
                   {/* Options */}
                   <div style={{ padding: "4px 0" }}>
                     {[
-                      "DGU Sound Proof",
+                      "DGU Sound Proof Glass",
                       "Italian marble",
                       "360 open view",
                       "Heat pump",
                       "Central AC",
-                      "2 road corner",
-                      "3 road corner",
+                      "2 road corner Project",
+                      "3 road corner Project",
                       "Pure residential",
                       "Nr.Jain Derasar",
                       "No vehicle zone at ground floor",
                       "VRV System",
+                      "Seperate Pooja Space",
+                      "Fully Vastu Compliant"
                     ].map((usp, index) => {
                       const isChecked = formData.usps?.includes(usp) || false;
                       return (
@@ -2164,7 +2259,7 @@ const BuilderVisitForm = () => {
               `}
             </style>
           </div>
-          
+
           <label className="full-width">
             Remark:<span className="required-asterisk">*</span>
             <textarea
@@ -2175,7 +2270,7 @@ const BuilderVisitForm = () => {
               required
             />
           </label>
-          
+
           {/* Total Amenities Field */}
           <label>
             Total Amenities:<span className="required-asterisk">*</span>
@@ -2195,7 +2290,7 @@ const BuilderVisitForm = () => {
               }}
             />
           </label>
-          
+
           {/* Alloted Car Parking Field */}
           <label>
             Alloted Car Parking:
@@ -2213,6 +2308,7 @@ const BuilderVisitForm = () => {
               }}
             >
               <option value="">Select parking</option>
+              <option value="0">0</option>
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
@@ -2222,7 +2318,7 @@ const BuilderVisitForm = () => {
               <option value="7">7</option>
             </select>
           </label>
-          
+
           <label className="full-width">
             Payout (Group Project):<span className="required-asterisk">*</span>
             <input
@@ -2253,8 +2349,8 @@ const BuilderVisitForm = () => {
             </select>
           </label>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="submit-btn"
             disabled={isSubmitting}
             style={{
@@ -2282,7 +2378,7 @@ const BuilderVisitForm = () => {
 
       <div className="view-toggle-container">
         <div className="view-toggle">
-          <button 
+          <button
             type="button"
             className={`view-toggle-btn ${!showAllCards ? 'active' : ''}`}
             onClick={() => {
@@ -2292,7 +2388,7 @@ const BuilderVisitForm = () => {
           >
             📋 Pending Approval
           </button>
-          <button 
+          <button
             type="button"
             className={`view-toggle-btn ${showAllCards ? 'active' : ''}`}
             onClick={() => {
@@ -2405,6 +2501,8 @@ const BuilderVisitForm = () => {
               <option value="">All</option>
               <option value="l1-pending">L1 Pending</option>
               <option value="l2-pending">L2 Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
             </select>
           </div>
           <div className="filter-input-group">
@@ -2435,7 +2533,7 @@ const BuilderVisitForm = () => {
             />
           </div>
           {(filterProjectName || filterGroupName || filterApprovalStatus || filterManager || filterDate) && (
-            <button 
+            <button
               onClick={() => {
                 setFilterProjectName("");
                 setFilterGroupName("");
@@ -2460,7 +2558,7 @@ const BuilderVisitForm = () => {
             const matchesProject = filterProjectName
               ? v.projectName?.toLowerCase().includes(filterProjectName.toLowerCase())
               : true;
-            
+
             // Filter by group name
             const matchesGroup = filterGroupName
               ? v.groupName?.toLowerCase().includes(filterGroupName.toLowerCase())
@@ -2480,11 +2578,19 @@ const BuilderVisitForm = () => {
                   // L1 must be Approved AND L2 still Pending
                   matchesApproval = l1 === "Approved" && l2 === "Pending";
                   break;
+                case "approved":
+                  // Both L1 and L2 must be Approved
+                  matchesApproval = l1 === "Approved" && l2 === "Approved";
+                  break;
+                case "rejected":
+                  // Either L1 or L2 is Rejected
+                  matchesApproval = l1 === "Rejected" || l2 === "Rejected";
+                  break;
                 default:
                   matchesApproval = true;
               }
             }
-            
+
             // Filter by manager
             const matchesManager = filterManager
               ? v.saiFakiraManager === filterManager
@@ -2524,307 +2630,217 @@ const BuilderVisitForm = () => {
 
             {/* Render filtered visits */}
             {filteredVisits.map((v) => (
-        <div key={v._id} className={`visit-card ${v.approval?.level2?.status === "Approved" ? "approved-card" : ""}`}>
-          <h3 className="card-title">
-            {v.projectName}
-            {v.approval?.level2?.status === "Approved" && (
-              <span className="approved-label">APPROVED</span>
-            )}
-          </h3>
+              <div key={v._id} className={`visit-card ${v.approval?.level2?.status === "Approved" ? "approved-card" : ""}`}>
 
-          {/* Header Info - Key Details */}
-          <div className="card-section universal-responsive-grid" style={{marginBottom: "12px"}}>
-            <p style={{backgroundColor:"yellow", padding: "4px 8px", borderRadius: "4px", margin: "2px 0", fontSize: "15px"}}>
-              <strong>Sai-Fakira Manager:</strong> {v.saiFakiraManager}
-            </p>
-            <p style={{backgroundColor:"yellow", padding: "4px 8px", borderRadius: "4px", margin: "2px 0", fontSize: "15px"}}>
-              <strong>Group Name:</strong> {v.groupName}
-            </p>
-            <p style={{margin: "2px 0", fontSize: "14px"}}>
-              <strong>Developer Name:</strong> {v.builderName}
-            </p>
-            <p style={{backgroundColor:"yellow", padding: "4px 8px", borderRadius: "4px", margin: "2px 0", fontSize: "15px"}}>
-              <strong>Developer Number:</strong> {v.builderNumber}
-            </p>
-            <p style={{margin: "2px 0", fontSize: "14px"}}>
-              <strong>Location:</strong> {v.location}
-            </p>
-            <p style={{margin: "2px 0", fontSize: "14px"}}>
-              <strong>Development Type:</strong> {v.developmentType}
-            </p>
-          </div>
+                {/* ── Title ── */}
+                <h3 className="vc-title">
+                  {v.projectName}
+                  {v.approval?.level2?.status === "Approved" && <span className="approved-label">APPROVED</span>}
+                </h3>
 
-          {/* Contact Info */}
-          <div className="card-section universal-responsive-grid" style={{marginBottom: "12px", padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px"}}>
-            <p style={{margin: "2px 0", fontSize: "14px"}}>
-              <strong>Office Person Name:</strong> {v.officePersonDetails}
-            </p>
-            <p style={{backgroundColor:"yellow", padding: "4px 8px", borderRadius: "4px", margin: "2px 0", fontSize: "15px"}}>
-              <strong>Office Person Contact:</strong> {v.officePersonNumber}
-            </p>
-            {v.executives && v.executives.length > 0 && (
-              <div style={{gridColumn: "1 / -1", marginTop: "6px"}}>
-                <strong style={{fontSize: "14px"}}>Executives:</strong>
-                <div style={{display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "4px"}}>
-                  {v.executives.map((exec, idx) => (
-                    <span key={idx} style={{backgroundColor:"lightblue", padding: "2px 6px", borderRadius: "12px", fontSize: "13px"}}>
-                      {exec.name} - {exec.number}
+                {/* ── Approval Status Bar (top of card) ── */}
+                <div className="vc-approval-bar">
+                  <div className="vc-approval-badge">
+                    <span className="vc-approval-badge-label">L1</span>
+                    <span className={`vc-approval-badge-status vc-approval-badge-status--${v.approval?.level1?.status === "Approved" ? "approved" : v.approval?.level1?.status === "Rejected" ? "rejected" : "pending"}`}>
+                      {v.approval?.level1?.status || "Pending"}
                     </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Property Details */}
-          <div style={{marginBottom: "12px"}}>
-            <div style={{
-              margin: "0 0 6px 0", 
-              color: "#333", 
-              fontSize: "16px", 
-              fontWeight: "bold",
-              borderBottom: "1px solid #007bff", 
-              paddingBottom: "2px",
-              width: "100%"
-            }}>
-              Property Details
-            </div>
-            <div className="property-cards-container">
-              {v.propertySizes?.map((p, i) => (
-                <div key={i} className="property-type-card" style={{
-                  backgroundColor: "#fff", 
-                  border: "1px solid #e0e0e0", 
-                  borderRadius: "6px", 
-                  padding: "12px",
-                  width: "100%",
-                  boxSizing: "border-box",
-                  overflow: "hidden"
-                }}>
-                  <div style={{margin: "0 0 8px 0", fontWeight: "bold", color: "#007bff", fontSize: "16px"}}>
-                    {v.developmentType === "Residential + Commercial"
-                      ? `Property ${i + 1} — ${p.type === "Commercial" || p.floor ? "🏢 Commercial" : "🏠 Residential"}`
-                      : `Property ${i + 1} (${p.type || v.developmentType})`}
                   </div>
-                  
-                  <div className="property-metrics-grid">
-                    {v.developmentType === "Residential" && (
-                      <>
-                        <span style={{backgroundColor:"yellow", padding: "4px 6px", borderRadius: "4px", fontSize: "15px"}}>
-                          <strong>Size:</strong> {p.size}
-                        </span>
-                        {p.category && <span style={{backgroundColor:"yellow", padding: "4px 6px", borderRadius: "4px", fontSize: "15px"}}>
-                          <strong>Category:</strong> {p.category}
-                        </span>}
-                      </>
-                    )}
-                    {v.developmentType === "Commercial" && p.floor && 
-                      <span style={{backgroundColor:"yellow", padding: "4px 6px", borderRadius: "4px", fontSize: "15px"}}>
-                        <strong>Floor:</strong> {p.floor}
-                      </span>
-                    }
-                    {v.developmentType === "Residential + Commercial" && (
-                      <>
-                        {p.size && p.size !== "N/A" && <span style={{backgroundColor:"yellow", padding: "4px 6px", borderRadius: "4px", fontSize: "15px"}}>
-                          <strong>Size:</strong> {p.size}
-                        </span>}
-                        {p.category && p.category !== "N/A" && <span style={{backgroundColor:"yellow", padding: "4px 6px", borderRadius: "4px", fontSize: "15px"}}>
-                          <strong>Category:</strong> {p.category}
-                        </span>}
-                        {p.floor && <span style={{backgroundColor:"yellow", padding: "4px 6px", borderRadius: "4px", fontSize: "15px"}}>
-                          <strong>Floor:</strong> {p.floor}
-                        </span>}
-                      </>
-                    )}
-                    
-                    <span style={{backgroundColor:"yellow", padding: "4px 6px", borderRadius: "4px", fontSize: "15px"}}>
-                      <strong>SQ.FT:</strong> {p.sqft}
-                    </span>
-                    <span style={{backgroundColor:"yellow", padding: "4px 6px", borderRadius: "4px", fontSize: "15px"}}>
-                      <strong>SQ.YD:</strong> {p.sqyd}
-                    </span>
-                    <span style={{backgroundColor:"yellow", padding: "4px 6px", borderRadius: "4px", fontSize: "15px"}}>
-                      <strong>Basic Rate:</strong> {p.basicRate}
-                    </span>
-                    <span style={{backgroundColor:"yellow", padding: "4px 6px", borderRadius: "4px", fontSize: "15px"}}>
-                      <strong>Box Price:</strong> {p.boxPrice}
-                    </span>
-                    <span style={{padding: "4px 6px", fontSize: "14px"}}>
-                      <strong>PLC:</strong> {p.plc}
-                    </span>
-                    <span style={{padding: "4px 6px", fontSize: "14px"}}>
-                      <strong>FRC:</strong> {p.frc}
-                    </span>
-                    <span style={{padding: "4px 6px", fontSize: "14px"}}>
-                      <strong>SaleDeed:</strong> {p.selldedAmount}
-                    </span>
-                    <span style={{padding: "4px 6px", fontSize: "14px"}}>
-                      <strong>AEC/AUDA:</strong> {p.aecAuda}
-                    </span>
-                    <span style={{padding: "4px 6px", fontSize: "14px"}}>
-                      <strong>Runn Maintenance:</strong> {p.maintenance}
-                    </span>
-                    <span style={{padding: "4px 6px", fontSize: "14px"}}>
-                      <strong>Main Deposit:</strong> {p.maintenanceDeposit}
+                  <div className="vc-approval-divider" />
+                  <div className="vc-approval-badge">
+                    <span className="vc-approval-badge-label">L2</span>
+                    <span className={`vc-approval-badge-status vc-approval-badge-status--${v.approval?.level2?.status === "Approved" ? "approved" : v.approval?.level2?.status === "Rejected" ? "rejected" : "pending"}`}>
+                      {v.approval?.level2?.status || "Pending"}
                     </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Clear Floor Height */}
-          {(v.clearFloorHeight || v.clearFloorHeightRetail || v.clearFloorHeightFlats || v.clearFloorHeightOffices) && (
-            <div className="card-section" style={{marginBottom: "12px", padding: "8px", backgroundColor: "#e3f2fd", borderRadius: "6px"}}>
-              <h4 style={{margin: "0 0 6px 0", fontSize: "14px", color: "#1976d2"}}>Clear Floor Height</h4>
-              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "4px", fontSize: "14px"}}>
-                {v.developmentType === "Residential" && v.clearFloorHeight && (
-                  <span><strong>Height:</strong> {v.clearFloorHeight}</span>
-                )}
-                {(v.developmentType === "Residential + Commercial" || v.developmentType === "Commercial") && (
-                  <>
-                    {v.clearFloorHeightRetail && (
-                      <span><strong>Retail:</strong> {v.clearFloorHeightRetail}</span>
-                    )}
-                    {v.clearFloorHeightFlats && (
-                      <span><strong>Flats:</strong> {v.clearFloorHeightFlats}</span>
-                    )}
-                    {v.clearFloorHeightOffices && (
-                      <span><strong>Offices:</strong> {v.clearFloorHeightOffices}</span>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-          
-          {/* Project Info */}
-          <div className="card-section" style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "6px", marginBottom: "12px", fontSize: "14px"}}>
-            <span><strong>Project Loan:</strong> {v.financingRequirements}</span>
-            <span><strong>Community:</strong> {v.gentry}</span>
-            <span style={{backgroundColor:"yellow", padding: "2px 4px", borderRadius: "3px", fontSize: "15px"}}>
-              <strong>Payout:</strong> {v.payout}
-            </span>
-            <span><strong>Total Units:</strong> {v.totalUnitsBlocks}</span>
-            <span style={{backgroundColor:"yellow", padding: "2px 4px", borderRadius: "3px", fontSize: "15px"}}>
-              <strong>Total Blocks:</strong> {v.totalBlocks}
-            </span>
-            <span><strong>Construction Stage:</strong> {v.stageOfConstruction}</span>
-            {v.areaType && (
-              <span style={{backgroundColor:"lightblue", padding: "2px 4px", borderRadius: "3px", fontSize: "15px"}}>
-                <strong>Area Type:</strong> {v.areaType}
-              </span>
-            )}
-            <span><strong>Completion:</strong> {v.expectedCompletionDate
-              ? new Date(v.expectedCompletionDate + "-01").toLocaleDateString("en-GB", {
-                  month: "long",
-                  year: "numeric",
-                })
-              : ""}
-            </span>
-            <span><strong>Units for Sale:</strong> {v.unitsForSale}</span>
-            {v.totalAmenities && <span><strong>Amenities:</strong> {v.totalAmenities}</span>}
-            {v.allotedCarParking && <span><strong>Car Parking:</strong> {v.allotedCarParking}</span>}
-          </div>
 
-          {/* USPs */}
-          {v.usps && v.usps.length > 0 && (
-            <div style={{marginBottom: "12px", padding: "8px", backgroundColor: "#e3f2fd", borderRadius: "6px"}}>
-              <p style={{margin: "0 0 6px 0", fontSize: "14px", fontWeight: "bold", color: "#1976d2"}}>USP's:</p>
-              <div style={{display: "flex", flexWrap: "wrap", gap: "4px"}}>
-                {v.usps.map((usp, idx) => (
-                  <span key={idx} style={{
-                    backgroundColor: "#2196f3",
-                    color: "white",
-                    padding: "2px 8px",
-                    borderRadius: "12px",
+                {/* ── Rejection Remarks (shown only when a level is Rejected) ── */}
+                {(v.approval?.level1?.status === "Rejected" && v.approval?.level1?.comment) && (
+                  <div style={{
+                    margin: "8px 0 4px",
+                    padding: "10px 14px",
+                    backgroundColor: "#fff5f5",
+                    border: "1px solid #fca5a5",
+                    borderLeft: "4px solid #dc2626",
+                    borderRadius: "6px",
                     fontSize: "13px",
-                    fontWeight: "500"
+                    color: "#7f1d1d",
+                    lineHeight: "1.5",
                   }}>
-                    {usp}
-                  </span>
-                ))}
+                    <strong style={{ color: "#dc2626" }}>❌ L1 Rejection Remark:</strong>{" "}
+                    {v.approval.level1.comment}
+                  </div>
+                )}
+                {(v.approval?.level2?.status === "Rejected" && v.approval?.level2?.comment) && (
+                  <div style={{
+                    margin: "4px 0 4px",
+                    padding: "10px 14px",
+                    backgroundColor: "#fff5f5",
+                    border: "1px solid #fca5a5",
+                    borderLeft: "4px solid #dc2626",
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    color: "#7f1d1d",
+                    lineHeight: "1.5",
+                  }}>
+                    <strong style={{ color: "#dc2626" }}>❌ L2 Rejection Remark:</strong>{" "}
+                    {v.approval.level2.comment}
+                  </div>
+                )}
+
+                {/* ── Section 1: Project Info ── */}
+                <div className="vc-section">
+                  <div className="vc-section-title">🏗️ Project Information</div>
+                  <div className="vc-grid">
+                    <div className="vc-field"><span className="vc-label">Sai-Fakira Manager</span><span className="vc-value vc-value--highlight">{v.saiFakiraManager}</span></div>
+                    <div className="vc-field"><span className="vc-label">Group Name</span><span className="vc-value vc-value--highlight">{v.groupName}</span></div>
+                    <div className="vc-field"><span className="vc-label">Developer Name</span><span className="vc-value">{v.builderName}</span></div>
+                    <div className="vc-field"><span className="vc-label">Developer Number</span><span className="vc-value vc-value--highlight">{v.builderNumber}</span></div>
+                    <div className="vc-field"><span className="vc-label">Location</span><span className="vc-value">{v.location}</span></div>
+                    <div className="vc-field"><span className="vc-label">Development Type</span><span className="vc-value">{v.developmentType}</span></div>
+                  </div>
+                </div>
+
+                {/* ── Section 2: Contact ── */}
+                <div className="vc-section">
+                  <div className="vc-section-title">📞 Contact Details</div>
+                  <div className="vc-grid">
+                    <div className="vc-field"><span className="vc-label">Office Person</span><span className="vc-value">{v.officePersonDetails}</span></div>
+                    <div className="vc-field"><span className="vc-label">Office Contact</span><span className="vc-value vc-value--highlight">{v.officePersonNumber}</span></div>
+                  </div>
+                  {v.executives && v.executives.length > 0 && (
+                    <div className="vc-field" style={{ borderRight: "none" }}>
+                      <span className="vc-label">Executives</span>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
+                        {v.executives.map((exec, idx) => (
+                          <span key={idx} className="vc-value--blue" style={{ fontSize: "0.78rem" }}>{exec.name} — {exec.number}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Section 3: Property Details ── */}
+                <div className="vc-section">
+                  <div className="vc-section-title">🏠 Property Details</div>
+                  <div style={{ padding: "12px" }}>
+                    {v.propertySizes?.map((p, i) => {
+                      const propKey = `${v._id}_${i}`;
+                      const isFieldsExpanded = !!expandedPropFields[propKey];
+                      return (
+                        <div key={i} className="vc-prop-card">
+                          <div className="vc-prop-title">
+                            {v.developmentType === "Residential + Commercial"
+                              ? `Property ${i + 1} — ${p.type === "Commercial" || p.floor ? "🏢 Commercial" : "🏠 Residential"}`
+                              : `Property ${i + 1} (${p.type || v.developmentType})`}
+                          </div>
+
+                          {/* ── Always visible: Size, Category, SQ.FT, Box Price ── */}
+                          <div className="vc-grid">
+                            {(p.size && p.size !== "N/A") && <div className="vc-field"><span className="vc-label">Size</span><span className="vc-value vc-value--highlight">{p.size}</span></div>}
+                            {p.floor && <div className="vc-field"><span className="vc-label">Floor</span><span className="vc-value vc-value--highlight">{p.floor}</span></div>}
+                            {p.frontage && <div className="vc-field"><span className="vc-label">Frontage</span><span className="vc-value vc-value--highlight">{p.frontage}</span></div>}
+                            {p.category && p.category !== "N/A" && <div className="vc-field"><span className="vc-label">Category</span><span className="vc-value vc-value--highlight">{p.category}</span></div>}
+                            {p.sqft && <div className="vc-field"><span className="vc-label">SQ.FT</span><span className="vc-value vc-value--highlight">{p.sqft}</span></div>}
+                            <div className="vc-field"><span className="vc-label">Box Price</span><span className="vc-value vc-value--highlight">{p.boxPrice}</span></div>
+                          </div>
+
+                          {/* ── Expanded fields ── */}
+                          {isFieldsExpanded && (
+                            <div className="vc-grid">
+                              <div className="vc-field"><span className="vc-label">SQ.YD</span><span className="vc-value vc-value--highlight">{p.sqyd}</span></div>
+                              <div className="vc-field"><span className="vc-label">Basic Rate</span><span className="vc-value vc-value--highlight">{p.basicRate}</span></div>
+                              <div className="vc-field"><span className="vc-label">PLC</span><span className="vc-value">{p.plc}</span></div>
+                              <div className="vc-field"><span className="vc-label">FRC</span><span className="vc-value">{p.frc}</span></div>
+                              <div className="vc-field"><span className="vc-label">Sale Deed</span><span className="vc-value">{p.selldedAmount}</span></div>
+                              <div className="vc-field"><span className="vc-label">AEC/AUDA</span><span className="vc-value">{p.aecAuda}</span></div>
+                              <div className="vc-field"><span className="vc-label">Maintenance</span><span className="vc-value">{p.maintenance}</span></div>
+                              <div className="vc-field"><span className="vc-label">Main Deposit</span><span className="vc-value">{p.maintenanceDeposit}</span></div>
+                            </div>
+                          )}
+
+                          {/* ── Toggle button ── */}
+                          <button
+                            className="vc-prop-expand-btn"
+                            onClick={() => setExpandedPropFields(prev => ({ ...prev, [propKey]: !prev[propKey] }))}
+                          >
+                            {isFieldsExpanded ? "▲ Show Less" : "▼ Show More Details"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ── Clear Floor Height ── */}
+                {(v.clearFloorHeight || v.clearFloorHeightRetail || v.clearFloorHeightFlats || v.clearFloorHeightOffices) && (
+                  <div className="vc-floor-block">
+                    <div className="vc-label" style={{ marginBottom: "6px" }}>Clear Floor Height</div>
+                    <div className="vc-grid">
+                      {v.developmentType === "Residential" && v.clearFloorHeight && (
+                        <div className="vc-field" style={{ border: "none", padding: "2px 0" }}><span className="vc-label">Height</span><span className="vc-value">{v.clearFloorHeight}</span></div>
+                      )}
+                      {v.clearFloorHeightRetail && <div className="vc-field" style={{ border: "none", padding: "2px 0" }}><span className="vc-label">Retail</span><span className="vc-value">{v.clearFloorHeightRetail}</span></div>}
+                      {v.clearFloorHeightFlats && <div className="vc-field" style={{ border: "none", padding: "2px 0" }}><span className="vc-label">Flats</span><span className="vc-value">{v.clearFloorHeightFlats}</span></div>}
+                      {v.clearFloorHeightOffices && <div className="vc-field" style={{ border: "none", padding: "2px 0" }}><span className="vc-label">Offices</span><span className="vc-value">{v.clearFloorHeightOffices}</span></div>}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Section 4: Project Stats ── */}
+                <div className="vc-section">
+                  <div className="vc-section-title">📊 Project Stats</div>
+                  <div className="vc-grid">
+                    <div className="vc-field"><span className="vc-label">Project Loan</span><span className="vc-value">{v.financingRequirements}</span></div>
+                    <div className="vc-field"><span className="vc-label">Community</span><span className="vc-value">{v.gentry}</span></div>
+                    <div className="vc-field"><span className="vc-label">Payout</span><span className="vc-value vc-value--highlight">{v.payout}</span></div>
+                    <div className="vc-field"><span className="vc-label">Total Units</span><span className="vc-value">{v.totalUnitsBlocks}</span></div>
+                    <div className="vc-field"><span className="vc-label">Total Blocks</span><span className="vc-value">{v.totalBlocks}</span></div>
+                    <div className="vc-field"><span className="vc-label">Construction Stage</span><span className="vc-value vc-value--highlight">{v.stageOfConstruction}</span></div>
+                    {v.areaType && <div className="vc-field"><span className="vc-label">Area Type</span><span className="vc-value vc-value--blue">{v.areaType}</span></div>}
+                    <div className="vc-field"><span className="vc-label">Completion</span><span className="vc-value">{v.expectedCompletionDate ? new Date(v.expectedCompletionDate + "-01").toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : ""}</span></div>
+                    <div className="vc-field"><span className="vc-label">Units for Sale</span><span className="vc-value">{v.unitsForSale}</span></div>
+                    {v.totalAmenities && <div className="vc-field"><span className="vc-label">Amenities</span><span className="vc-value">{v.totalAmenities}</span></div>}
+                    {v.allotedCarParking && <div className="vc-field"><span className="vc-label">Car Parking</span><span className="vc-value">{v.allotedCarParking}</span></div>}
+                  </div>
+                </div>
+
+                {/* ── USPs ── */}
+                {v.usps && v.usps.length > 0 && (
+                  <div className="vc-usp-block">
+                    <div className="vc-usp-label">USP's</div>
+                    <div className="vc-usp-tags">
+                      {v.usps.map((usp, idx) => <span key={idx} className="vc-usp-tag">{usp}</span>)}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Remark ── */}
+                <div className="vc-remark"><strong>Remark:</strong> {v.remark}</div>
+
+                {/* ── Submitted ── */}
+                <div className="vc-submitted">📅 <strong>Submitted:</strong> {formatSubmissionDateTime(v.submittedAt)}</div>
+
+                {/* ── Action Buttons ── */}
+                <div className="vc-actions">
+                  {v.approval?.level1?.status !== "Approved" && (<>
+                    <button className="vc-btn vc-btn--approve" onClick={() => handleApprove(v._id, 1)}>Approve L1</button>
+                    <button className="vc-btn vc-btn--reject" onClick={() => handleRejectWithRemarks(v._id, 1)}>Reject L1</button>
+                    <button className="vc-btn vc-btn--edit" onClick={() => handleEdit(v)}>Edit</button>
+                  </>)}
+                  {v.approval?.level1?.status === "Approved" && v.approval?.level2?.status !== "Approved" && (<>
+                    <button className="vc-btn vc-btn--approve" onClick={() => handleApprove(v._id, 2)}>Approve L2</button>
+                    <button className="vc-btn vc-btn--reject" onClick={() => handleRejectWithRemarks(v._id, 2)}>Reject L2</button>
+                    <button className="vc-btn vc-btn--edit" onClick={() => handleEdit(v)}>Edit</button>
+                  </>)}
+                </div>
+
               </div>
-            </div>
-          )}
-          
-          {/* Remark */}
-          <div style={{marginBottom: "12px", padding: "8px", backgroundColor: "yellow", borderRadius: "6px"}}>
-            <p style={{margin: "0", fontSize: "14px"}}>
-              <strong>Remark:</strong> {v.remark}
-            </p>
-          </div>
-          
-          {/* Submission Date */}
-          <div style={{ 
-            fontSize: "13px", 
-            marginBottom: "12px", 
-            padding: "6px 8px", 
-            backgroundColor: "#f0f8ff", 
-            borderRadius: "4px",
-            borderLeft: "3px solid #007bff"
-          }}>
-            <span style={{ color: "#333" }}>
-              <strong>📅 Submitted:</strong> {formatSubmissionDateTime(v.submittedAt)}
-            </span>
-          </div>
-          
-          {/* Approval Status */}
-          <div className="universal-responsive-grid" style={{ fontSize: "14px", marginBottom: "12px" }}>
-            <div>
-              <strong>Level 1:</strong>{" "}
-              <span className={`status ${
-                v.approval?.level1?.status === "Approved" ? "approved" :
-                v.approval?.level1?.status === "Rejected" ? "rejected" : "pending"
-              }`}>
-                {v.approval?.level1?.status || "Pending"}
-              </span>
-              {v.approval?.level1?.status === "Rejected" && v.approval?.level1?.comment && (
-                <div style={{fontSize: "11px", color: "#666", marginTop: "2px"}}>
-                  Remarks: "{v.approval.level1.comment}"
-                </div>
-              )}
-            </div>
-            <div>
-              <strong>Level 2:</strong>{" "}
-              <span className={`status ${
-                v.approval?.level2?.status === "Approved" ? "approved" :
-                v.approval?.level2?.status === "Rejected" ? "rejected" : "pending"
-              }`}>
-                {v.approval?.level2?.status || "Pending"}
-              </span>
-              {v.approval?.level2?.status === "Rejected" && v.approval?.level2?.comment && (
-                <div style={{fontSize: "11px", color: "#666", marginTop: "2px"}}>
-                  Remarks: "{v.approval.level2.comment}"
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="card-buttons">
-            {/* If Level 1 not approved -> show L1 controls */}
-            {v.approval?.level1?.status !== "Approved" && (
-              <>
-                <button onClick={() => handleApprove(v._id, 1)}>Approve L1</button>
-                <button onClick={() => handleRejectWithRemarks(v._id, 1)}>Reject L1</button>
-                <button onClick={() => handleEdit(v)}>Edit</button>
-              </>
-            )}
-
-            {/* If Level1 approved but Level2 not approved -> show L2 controls */}
-            {v.approval?.level1?.status === "Approved" &&
-              v.approval?.level2?.status !== "Approved" && (
-                <>
-                  <button onClick={() => handleApprove(v._id, 2)}>Approve L2</button>
-                  <button onClick={() => handleRejectWithRemarks(v._id, 2)}>Reject L2</button>
-                  <button onClick={() => handleEdit(v)}>Edit</button>
-                </>
-              )}
-          </div>
-        </div>
-      ))}
-            </>
-          );
-        })()}
+            ))}
+          </>
+        );
+      })()}
     </div>
   );
 };

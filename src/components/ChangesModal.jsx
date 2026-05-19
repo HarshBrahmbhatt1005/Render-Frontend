@@ -2,6 +2,15 @@ import React from 'react';
 import '../css/ChangesModal.css';
 
 const ChangesModal = ({ isOpen, onClose, changes }) => {
+  // If status changed, show only status to avoid noise from status-dependent fields.
+  const displayChanges = (() => {
+    if (!changes || Object.keys(changes).length === 0) return {};
+    if (changes.status) {
+      return { status: changes.status };
+    }
+    return changes;
+  })();
+
   if (!isOpen) return null;
 
   return (
@@ -12,13 +21,13 @@ const ChangesModal = ({ isOpen, onClose, changes }) => {
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
         <div className="changes-modal-body">
-          {Object.keys(changes).length === 0 ? (
+          {Object.keys(displayChanges).length === 0 ? (
             <div className="empty-changes">
               <p>No changes detected at this time.</p>
             </div>
           ) : (
             <div className="changes-list">
-              {Object.entries(changes).map(([field, { oldVal, newVal }]) => (
+              {Object.entries(displayChanges).map(([field, { oldVal, newVal }]) => (
                 <div key={field} className="change-item">
                   <div className="change-label">
                     {field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}

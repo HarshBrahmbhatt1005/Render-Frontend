@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
 import "../css/custForm.css";
 import "./RealestateLeadForm.css";
@@ -7,12 +7,24 @@ const API = `${import.meta.env.VITE_API_URL}/api/realestate-leads`;
 
 const TODAY = new Date().toISOString().split("T")[0];
 
-const SOURCE_OPTIONS = [
+const REALESTATE_SOURCE_OPTIONS = [
   "Existing Customer",
   "Paid Marketing",
   "Refer & Earn",
   "WhatsApp Paid Marketing",
   "Channel Partner Lead",
+  "Self Source",
+];
+
+const FINANCE_SOURCE_OPTIONS = [
+  "Existing Customer",
+  "Paid Marketing",
+  "Refer & Earn",
+  "WhatsApp Paid Marketing",
+  "Sai Fakira",
+  "Google Platform",
+  "Tele-calling",
+  "Self Source",
 ];
 
 const STATUS_OPTIONS = [
@@ -22,11 +34,13 @@ const STATUS_OPTIONS = [
   "Reschedule",
   "Follow-up",
   "Interested",
+  "Purchase the property",
 ];
 
-const INTERESTED_STATUSES = ["Call Connected", "Interested"];
+const INTERESTED_STATUSES = ["Follow-up", "Interested"];
+const FINANCE_TRIGGER_STATUSES = ["Reschedule", "Interested", "Follow-up"];
 
-const RESIDENTIAL_SIZES = ["1 BHK", "2 BHK", "3 BHK", "4 BHK", "5 BHK", "6+ BHK"];
+const RESIDENTIAL_SIZES = ["1 RK", "1 BHK", "2 BHK", "2.5 BHK", "3 BHK", "4 BHK", "5 BHK", "6+ BHK"];
 
 const RESIDENTIAL_CATEGORIES = [
   "Flats",
@@ -39,6 +53,7 @@ const RESIDENTIAL_CATEGORIES = [
   "Weekend Villa",
 ];
 
+const PROPERTY_TYPES = ["Residential", "Commercial", "Plot"];
 const COMMERCIAL_TYPES = ["Shop", "Showroom", "Office"];
 const MANAGERS = [
   "Dharmesh Bhavsar",
@@ -57,12 +72,50 @@ const MANAGERS = [
   "Vinay Mishra",
 ];
 
+const SENIORS = [
+  "Pradeep Sir",
+  "Pankaj Sir",
+  "Hitendra Sir",
+  "Dhruvi Maam",
+];
+
+const FINANCE_PRODUCTS = [
+  "Home Loan",
+  "Home Loan TOP UP",
+  "Home Loan BT + TOP UP",
+  "Commercial Purchase",
+  "Loan Against Property",
+  "Loan Against Property BT + TOP UP",
+  "Land Purchase",
+  "Plot Purchase + Construction",
+  "Lease Rental Discount Purchase",
+  "Industrial Purchase",
+  "Inventory Funding",
+  "Project Loan",
+  "Cgtmsc",
+  "Other"
+];
+
+const uniqueFilled = (values) => (
+  Array.from(new Set(values.filter((value) => value && String(value).trim())))
+);
+
+const mergeOptions = (baseOptions, extraOptions = []) => (
+  uniqueFilled([...baseOptions, ...extraOptions])
+);
+
 const RealestateLeadForm = () => {
+  const [leadType, setLeadType] = useState("realestate"); // 'realestate' | 'finance'
   const [leadDate, setLeadDate] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerNumber, setCustomerNumber] = useState("");
+  const [projectName, setProjectName] = useState("");
   const [source, setSource] = useState("");
   const [referenceOf, setReferenceOf] = useState("");
+  const [financeProduct, setFinanceProduct] = useState("");
+  const [customFinanceProduct, setCustomFinanceProduct] = useState("");
+  const [loanAmount, setLoanAmount] = useState("");
+  const [passedOn, setPassedOn] = useState("");
 
   // Universal Property Requirements (Root level)
   const [propertyType, setPropertyType] = useState("");
@@ -90,19 +143,117 @@ const RealestateLeadForm = () => {
   const [statusFilter, setStatusFilter] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("All");
   const [managerFilter, setManagerFilter] = useState("All");
+  const [passedOnFilter, setPassedOnFilter] = useState("All");
+  const [leadTypeFilter, setLeadTypeFilter] = useState("All");
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  
+  // Sort state
+  const [sortBy, setSortBy] = useState("date"); // date, lastModified, callCount
+  const [sortOrder, setSortOrder] = useState("desc"); // asc, desc
 
   // Edit mode state
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingLeadId, setEditingLeadId] = useState(null);
+  
+  // Scroll position ref to prevent auto-scroll when cards load
+  const scrollPositionRef = useRef(0);
 
   useEffect(() => {
     fetchLeads();
   }, []);
 
+  const savedStatusOptions = useMemo(() => (
+    uniqueFilled(leads.flatMap((lead) => (lead.calls || []).map((call) => call.status)))
+  ), [leads]);
+
+  const savedManagerOptions = useMemo(() => (
+    uniqueFilled(leads.flatMap((lead) => (lead.calls || []).map((call) => call.manager)))
+  ), [leads]);
+
+  const savedPassedOnOptions = useMemo(() => (
+    uniqueFilled(leads.map((lead) => lead.passedOn))
+  ), [leads]);
+
+  const savedSourceOptions = useMemo(() => (
+    uniqueFilled(leads.map((lead) => lead.source))
+  ), [leads]);
+
+  const savedResidentialSizeOptions = useMemo(() => (
+    uniqueFilled(leads.map((lead) => lead.residentialSize))
+  ), [leads]);
+
+  const savedPropertyTypeOptions = useMemo(() => (
+    uniqueFilled(leads.map((lead) => lead.propertyType))
+  ), [leads]);
+
+  const savedResidentialCategoryOptions = useMemo(() => (
+    uniqueFilled(leads.map((lead) => lead.residentialCategory))
+  ), [leads]);
+
+  const savedCommercialTypeOptions = useMemo(() => (
+    uniqueFilled(leads.map((lead) => lead.commercialType))
+  ), [leads]);
+
+  const savedFinanceProductOptions = useMemo(() => (
+    uniqueFilled(leads.map((lead) => lead.financeProduct))
+  ), [leads]);
+
+  const statusOptions = useMemo(() => (
+    mergeOptions(STATUS_OPTIONS, savedStatusOptions)
+  ), [savedStatusOptions]);
+
+  const managerOptions = useMemo(() => (
+    mergeOptions(MANAGERS, savedManagerOptions)
+  ), [savedManagerOptions]);
+
+  const passedOnOptions = useMemo(() => (
+    mergeOptions(SENIORS, savedPassedOnOptions)
+  ), [savedPassedOnOptions]);
+
+  const sourceOptions = useMemo(() => (
+    mergeOptions(leadType === "finance" ? FINANCE_SOURCE_OPTIONS : REALESTATE_SOURCE_OPTIONS, savedSourceOptions)
+  ), [leadType, savedSourceOptions]);
+
+  const allSourceOptions = useMemo(() => (
+    mergeOptions([...REALESTATE_SOURCE_OPTIONS, ...FINANCE_SOURCE_OPTIONS], savedSourceOptions)
+  ), [savedSourceOptions]);
+
+  const residentialSizeOptions = useMemo(() => (
+    mergeOptions(RESIDENTIAL_SIZES, savedResidentialSizeOptions)
+  ), [savedResidentialSizeOptions]);
+
+  const propertyTypeOptions = useMemo(() => (
+    mergeOptions(PROPERTY_TYPES, savedPropertyTypeOptions)
+  ), [savedPropertyTypeOptions]);
+
+  const residentialCategoryOptions = useMemo(() => (
+    mergeOptions(RESIDENTIAL_CATEGORIES, savedResidentialCategoryOptions)
+  ), [savedResidentialCategoryOptions]);
+
+  const commercialTypeOptions = useMemo(() => (
+    mergeOptions(COMMERCIAL_TYPES, savedCommercialTypeOptions)
+  ), [savedCommercialTypeOptions]);
+
+  const financeProductOptions = useMemo(() => {
+    const merged = mergeOptions(
+      FINANCE_PRODUCTS.filter(p => p !== "Other"),
+      savedFinanceProductOptions.filter(p => p !== "Other")
+    );
+    return [...merged, "Other"]; // always keep "Other" last
+  }, [savedFinanceProductOptions]);
+
   const fetchLeads = async () => {
     try {
+      // Store current scroll position before fetching
+      scrollPositionRef.current = window.scrollY;
+      
       const res = await axios.get(API);
       setLeads(res.data);
+      
+      // Restore scroll position after state updates
+      setTimeout(() => {
+        window.scrollTo(0, scrollPositionRef.current);
+      }, 0);
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
@@ -120,9 +271,89 @@ const RealestateLeadForm = () => {
     const matchesStatus = statusFilter === "All" || lastCall?.status === statusFilter;
     const matchesSource = sourceFilter === "All" || l.source === sourceFilter;
     const matchesManager = managerFilter === "All" || l.calls?.some(c => c.manager === managerFilter);
+    const matchesPassedOn = passedOnFilter === "All" || l.passedOn === passedOnFilter;
+    const matchesLeadType = leadTypeFilter === "All" || l.leadType === leadTypeFilter;
 
-    return matchesSearch && matchesStatus && matchesSource && matchesManager;
+    return matchesSearch && matchesStatus && matchesSource && matchesManager && matchesPassedOn && matchesLeadType;
+  }).sort((a, b) => {
+    let compareValue = 0;
+
+    switch (sortBy) {
+      case "date":
+        // Sort by lead date
+        compareValue = new Date(b.leadDate || 0) - new Date(a.leadDate || 0);
+        break;
+      case "lastModified":
+        // Sort by last call date (most recent first)
+        const lastCallA = a.calls && a.calls.length > 0 ? a.calls[a.calls.length - 1] : null;
+        const lastCallB = b.calls && b.calls.length > 0 ? b.calls[b.calls.length - 1] : null;
+        compareValue = new Date(lastCallB?.callingDate || 0) - new Date(lastCallA?.callingDate || 0);
+        break;
+      case "callCount":
+        // Sort by number of calls
+        compareValue = (b.calls?.length || 0) - (a.calls?.length || 0);
+        break;
+      default:
+        compareValue = 0;
+    }
+
+    // Apply sort order (ascending or descending)
+    return sortOrder === "asc" ? -compareValue : compareValue;
   });
+
+  const { summaryManagers, summaryStatuses, summaryMatrix } = useMemo(() => {
+    const managerSet = new Set(managerOptions);
+    const statusSet = new Set(statusOptions);
+
+    // Build sets from ALL leads (so all managers/statuses appear as columns)
+    leads.forEach((lead) => {
+      (lead.calls || []).forEach((call) => {
+        if (call?.manager) managerSet.add(call.manager);
+        if (call?.status) statusSet.add(call.status);
+      });
+    });
+
+    let managers = Array.from(managerSet)
+      .filter((manager) => manager !== "Khusbu Patel")
+      .sort((a, b) => a.localeCompare(b));
+
+    const statuses = [...statusOptions, ...Array.from(statusSet).filter((s) => !statusOptions.includes(s))];
+
+    const matrix = {};
+    managers.forEach((manager) => {
+      matrix[manager] = {};
+      statuses.forEach((status) => { matrix[manager][status] = 0; });
+    });
+
+    // Count only from leads that match current filters
+    const leadsToCount = leads.filter((l) => {
+      const matchesLeadType = leadTypeFilter === "All" || l.leadType === leadTypeFilter;
+      const matchesSource = sourceFilter === "All" || l.source === sourceFilter;
+      const matchesManager = managerFilter === "All" || l.calls?.some(c => c.manager === managerFilter);
+      const matchesPassedOn = passedOnFilter === "All" || l.passedOn === passedOnFilter;
+      const lastCall = l.calls && l.calls.length > 0 ? l.calls[l.calls.length - 1] : null;
+      const matchesStatus = statusFilter === "All" || lastCall?.status === statusFilter;
+      return matchesLeadType && matchesSource && matchesManager && matchesPassedOn && matchesStatus;
+    });
+
+    leadsToCount.forEach((lead) => {
+      if (!lead.calls || lead.calls.length === 0) return;
+      const lastCall = lead.calls[lead.calls.length - 1];
+      if (!lastCall?.manager || !lastCall?.status) return;
+      if (lastCall.manager === "Khusbu Patel") return;
+
+      if (!matrix[lastCall.manager]) {
+        matrix[lastCall.manager] = {};
+        statuses.forEach((status) => { matrix[lastCall.manager][status] = 0; });
+      }
+      if (matrix[lastCall.manager][lastCall.status] === undefined) {
+        matrix[lastCall.manager][lastCall.status] = 0;
+      }
+      matrix[lastCall.manager][lastCall.status] += 1;
+    });
+
+    return { summaryManagers: managers, summaryStatuses: statuses, summaryMatrix: matrix };
+  }, [leads, leadTypeFilter, sourceFilter, managerFilter, passedOnFilter, statusFilter, managerOptions, statusOptions]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "N/A";
@@ -148,7 +379,22 @@ const RealestateLeadForm = () => {
     }
   }, [modalStatus]);
 
-  const isRequirementNeeded = calls.some((c) => INTERESTED_STATUSES.includes(c.status));
+  const hasRealestateRequirementDetails = [
+    propertyType,
+    budget,
+    preferredArea,
+    residentialSize,
+    residentialCategory,
+    commercialType,
+  ].some((value) => String(value || "").trim());
+  const hasFinanceDetails = [financeProduct, loanAmount].some((value) => String(value || "").trim());
+  const isRequirementNeeded =
+    calls.some((c) => INTERESTED_STATUSES.includes(c.status)) ||
+    (leadType === "realestate" && hasRealestateRequirementDetails);
+  const isFinanceProductNeeded =
+    calls.some((c) => FINANCE_TRIGGER_STATUSES.includes(c.status)) ||
+    (leadType === "finance" && hasFinanceDetails);
+  const isPassedOnNeeded = isRequirementNeeded || isFinanceProductNeeded || String(passedOn || "").trim();
 
   const addCall = () => {
     setCalls((prev) => [...prev, { callingDate: TODAY, manager: "", status: "", remarks: "", followUpDate: "" }]);
@@ -171,7 +417,7 @@ const RealestateLeadForm = () => {
 
   const validate = () => {
     const e = {};
-    
+
     // Only validate customer info in create mode
     if (!isEditMode) {
       if (!leadDate) e.leadDate = "Required.";
@@ -182,6 +428,23 @@ const RealestateLeadForm = () => {
         e.customerNumber = "10 digits.";
       }
       if (!source) e.source = "Required.";
+
+    }
+
+    // Finance Lead: product required when triggered by call status
+    if (leadType === "finance" && isFinanceProductNeeded && !financeProduct) {
+      e.financeProduct = "Required.";
+    }
+    // If "Other" is selected, custom product name is required
+    if (leadType === "finance" && isFinanceProductNeeded && financeProduct === "Other" && !customFinanceProduct.trim()) {
+      e.financeProduct = "Custom product name required.";
+    }
+    if (leadType === "finance" && isFinanceProductNeeded && !loanAmount.trim()) {
+      e.loanAmount = "Required.";
+    }
+
+    if (isPassedOnNeeded && !passedOn) {
+      e.passedOn = "Required.";
     }
 
     calls.forEach((c, i) => {
@@ -190,7 +453,7 @@ const RealestateLeadForm = () => {
       if (!c.status) e[`call_${i}_status`] = "Required.";
     });
 
-    if (isRequirementNeeded) {
+    if (isRequirementNeeded && leadType === "realestate") {
       if (!propertyType) e.propertyType = "Required.";
       if (!budget.trim()) e.budget = "Required.";
       if (!preferredArea.trim()) e.preferredArea = "Required.";
@@ -215,12 +478,17 @@ const RealestateLeadForm = () => {
       if (isEditMode) {
         // Update existing lead
         const payload = {
-          propertyType,
-          budget,
-          preferredArea,
-          residentialSize,
-          residentialCategory,
-          commercialType,
+          leadType,
+          projectName: leadType === "realestate" ? projectName : undefined,
+          financeProduct: leadType === "finance" ? (financeProduct === "Other" ? customFinanceProduct : financeProduct) : undefined,
+          loanAmount: leadType === "finance" ? loanAmount : undefined,
+          passedOn: isPassedOnNeeded ? passedOn : "",
+          propertyType: leadType === "realestate" ? propertyType : undefined,
+          budget: leadType === "realestate" ? budget : undefined,
+          preferredArea: leadType === "realestate" ? preferredArea : undefined,
+          residentialSize: leadType === "realestate" ? residentialSize : undefined,
+          residentialCategory: leadType === "realestate" ? residentialCategory : undefined,
+          commercialType: leadType === "realestate" ? commercialType : undefined,
           calls,
         };
 
@@ -232,24 +500,29 @@ const RealestateLeadForm = () => {
           leadDate,
           customerName,
           customerNumber,
+          projectName: leadType === "realestate" ? projectName : undefined,
           source,
           referenceOf,
-          propertyType,
-          budget,
-          preferredArea,
-          residentialSize,
-          residentialCategory,
-          commercialType,
+          leadType,
+          financeProduct: leadType === "finance" ? (financeProduct === "Other" ? customFinanceProduct : financeProduct) : undefined,
+          loanAmount: leadType === "finance" ? loanAmount : undefined,
+          passedOn: isPassedOnNeeded ? passedOn : "",
+          propertyType: leadType === "realestate" ? propertyType : undefined,
+          budget: leadType === "realestate" ? budget : undefined,
+          preferredArea: leadType === "realestate" ? preferredArea : undefined,
+          residentialSize: leadType === "realestate" ? residentialSize : undefined,
+          residentialCategory: leadType === "realestate" ? residentialCategory : undefined,
+          commercialType: leadType === "realestate" ? commercialType : undefined,
           calls,
         };
 
         await axios.post(API, payload);
         setModalStatus("success");
       }
-      
+
       // Reset form
       resetForm();
-      
+
       // Refresh list
       fetchLeads();
     } catch (err) {
@@ -262,10 +535,16 @@ const RealestateLeadForm = () => {
   };
 
   const resetForm = () => {
+    setLeadType("realestate");
     setCustomerName("");
     setCustomerNumber("");
+    setProjectName("");
     setSource("");
     setReferenceOf("");
+    setFinanceProduct("");
+    setCustomFinanceProduct("");
+    setLoanAmount("");
+    setPassedOn("");
     setPropertyType("");
     setBudget("");
     setPreferredArea("");
@@ -281,18 +560,33 @@ const RealestateLeadForm = () => {
   const handleEdit = (lead) => {
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
+
     // Set edit mode
     setIsEditMode(true);
     setEditingLeadId(lead._id);
-    
+
     // Load customer details (read-only in edit mode)
+    setLeadType(lead.leadType || "realestate");
     setLeadDate(lead.leadDate ? new Date(lead.leadDate).toISOString().split("T")[0] : TODAY);
     setCustomerName(lead.customerName || "");
     setCustomerNumber(lead.customerNumber || "");
+    setProjectName(lead.projectName || "");
     setSource(lead.source || "");
     setReferenceOf(lead.referenceOf || "");
     
+    // Restore finance product — if saved value isn't in the known list, treat as "Other"
+    const savedProduct = lead.financeProduct || "";
+    if (savedProduct && !FINANCE_PRODUCTS.includes(savedProduct)) {
+      setFinanceProduct("Other");
+      setCustomFinanceProduct(savedProduct);
+    } else {
+      setFinanceProduct(savedProduct);
+      setCustomFinanceProduct("");
+    }
+    
+    setLoanAmount(lead.loanAmount || "");
+    setPassedOn(lead.passedOn || "");
+
     // Load editable fields
     setPropertyType(lead.propertyType || "");
     setBudget(lead.budget || "");
@@ -300,9 +594,9 @@ const RealestateLeadForm = () => {
     setResidentialSize(lead.residentialSize || "");
     setResidentialCategory(lead.residentialCategory || "");
     setCommercialType(lead.commercialType || "");
-    
+
     // Load calls
-    const formattedCalls = lead.calls.map(c => ({
+    const formattedCalls = (lead.calls || []).map(c => ({
       callingDate: c.callingDate ? new Date(c.callingDate).toISOString().split("T")[0] : TODAY,
       manager: c.manager || "",
       status: c.status || "",
@@ -310,7 +604,7 @@ const RealestateLeadForm = () => {
       followUpDate: c.followUpDate ? new Date(c.followUpDate).toISOString().split("T")[0] : "",
     }));
     setCalls(formattedCalls.length > 0 ? formattedCalls : [{ callingDate: TODAY, manager: "", status: "", remarks: "", followUpDate: "" }]);
-    
+
     setErrors({});
   };
 
@@ -348,12 +642,17 @@ const RealestateLeadForm = () => {
 
   return (
     <div className="rl-page-container">
+      {/* ── Decorative blobs ── */}
+      <div className="rl-blob rl-blob-1"></div>
+      <div className="rl-blob rl-blob-2"></div>
       {/* ── Center Container for Form ── */}
       <div className="rl-main-center-wrap">
         <div className="form-container rl-form-container">
           <div className="form-title-row">
             <h1 className="rl-title">
-              {isEditMode ? "Edit Real-Estate Lead" : "Real-Estate Lead Form"}
+              {isEditMode
+                ? (leadType === "finance" ? "Edit Finance Lead" : "Edit Real-Estate Lead")
+                : (leadType === "finance" ? "Finance Lead Form" : "Real-Estate Lead Form")}
             </h1>
             {isEditMode && (
               <button type="button" className="rl-cancel-edit-btn" onClick={handleCancelEdit}>
@@ -363,6 +662,35 @@ const RealestateLeadForm = () => {
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
+            {/* Lead Type Selection */}
+            {!isEditMode && (
+              <div className="rl-lead-type-row">
+                <label className="rl-lead-type-label">Lead Type:</label>
+                <label className="rl-radio-label">
+                  <input
+                    type="radio"
+                    name="leadType"
+                    value="realestate"
+                    checked={leadType === "realestate"}
+                    onChange={() => { setLeadType("realestate"); setFinanceProduct(""); setErrors({}); }}
+                    className="rl-radio-input"
+                  />
+                  Real Estate 
+                </label>
+                <label className="rl-radio-label">
+                  <input
+                    type="radio"
+                    name="leadType"
+                    value="finance"
+                    checked={leadType === "finance"}
+                    onChange={() => { setLeadType("finance"); setProjectName(""); setErrors({}); }}
+                    className="rl-radio-input"
+                  />
+                  Finance
+                </label>
+              </div>
+            )}
+
             {/* SECTION 1 — Customer Info */}
             <div className="rl-section-card">
               <div className="rl-section-header">
@@ -416,7 +744,7 @@ const RealestateLeadForm = () => {
                     disabled={isEditMode}
                   >
                     <option value="">Select Source</option>
-                    {SOURCE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    {sourceOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                   {err("source")}
                 </div>
@@ -431,10 +759,22 @@ const RealestateLeadForm = () => {
                     disabled={isEditMode}
                   />
                 </div>
+                {/* Project Name — Real Estate only */}
+                {leadType === "realestate" && (
+                  <div className="rl-field">
+                    <label className="rl-label">Project Name</label>
+                    <input
+                      type="text"
+                      placeholder="Project Name"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      className="rl-input"
+                      disabled={isEditMode}
+                    />
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* SECTION 2 — Call Records */}
             <div className="rl-calls-wrapper">
               <div className="rl-calls-header">
                 <div className="rl-calls-title-row">
@@ -472,7 +812,7 @@ const RealestateLeadForm = () => {
                         className={`rl-input rl-select${errors[`call_${idx}_manager`] ? " rl-input-error" : ""}`}
                       >
                         <option value="">Select Manager</option>
-                        {MANAGERS.map((m) => <option key={m} value={m}>{m}</option>)}
+                        {managerOptions.map((m) => <option key={m} value={m}>{m}</option>)}
                       </select>
                       {err(`call_${idx}_manager`)}
                     </div>
@@ -484,7 +824,7 @@ const RealestateLeadForm = () => {
                         className={`rl-input rl-select${errors[`call_${idx}_status`] ? " rl-input-error" : ""}`}
                       >
                         <option value="">Select Status</option>
-                        {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                        {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
                       {err(`call_${idx}_status`)}
                     </div>
@@ -514,8 +854,8 @@ const RealestateLeadForm = () => {
               ))}
             </div>
 
-            {/* SECTION 3 — Universal Requirements (Conditional) */}
-            {isRequirementNeeded && (
+            {/* SECTION 3 — Universal Requirements (Conditional, Real Estate only) */}
+            {isRequirementNeeded && leadType === "realestate" && (
               <div className="rl-section-card rl-animate-in" style={{ borderTop: "2px solid #1e3a5f" }}>
                 <div className="rl-section-header">
                   <span className="rl-section-badge">3</span>
@@ -552,11 +892,21 @@ const RealestateLeadForm = () => {
                       className={`rl-input rl-select${errors.propertyType ? " rl-input-error" : ""}`}
                     >
                       <option value="">Select Type</option>
-                      <option>Residential</option>
-                      <option>Commercial</option>
-                      <option>Plot</option>
+                      {propertyTypeOptions.map((type) => <option key={type} value={type}>{type}</option>)}
                     </select>
                     {err("propertyType")}
+                  </div>
+                  <div className="rl-field">
+                    <label className="rl-label">Passed On <span className="required-asterisk">*</span></label>
+                    <select
+                      value={passedOn}
+                      onChange={(e) => { setPassedOn(e.target.value); setErrors(p => { const n = { ...p }; delete n.passedOn; return n; }); }}
+                      className={`rl-input rl-select${errors.passedOn ? " rl-input-error" : ""}`}
+                    >
+                      <option value="">Select Senior</option>
+                      {passedOnOptions.map((name) => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                    {err("passedOn")}
                   </div>
                 </div>
 
@@ -570,7 +920,7 @@ const RealestateLeadForm = () => {
                         className="rl-input rl-select"
                       >
                         <option value="">Select Size</option>
-                        {RESIDENTIAL_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+                        {residentialSizeOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
                     <div className="rl-field">
@@ -581,7 +931,7 @@ const RealestateLeadForm = () => {
                         className="rl-input rl-select"
                       >
                         <option value="">Select Category</option>
-                        {RESIDENTIAL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        {residentialCategoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                   </div>
@@ -596,10 +946,76 @@ const RealestateLeadForm = () => {
                       className="rl-input rl-select"
                     >
                       <option value="">Select Type</option>
-                      {COMMERCIAL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      {commercialTypeOptions.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* SECTION 3 — Finance Product (Conditional, Finance Lead only) */}
+            {leadType === "finance" && isFinanceProductNeeded && (
+              <div className="rl-section-card rl-animate-in" style={{ borderTop: "2px solid #1e3a5f" }}>
+                <div className="rl-section-header">
+                  <span className="rl-section-badge">3</span>
+                  <span className="rl-section-title">Finance Details</span>
+                </div>
+                <div className="rl-grid-3">
+                  <div className="rl-field">
+                    <label className="rl-label">Product <span className="required-asterisk">*</span></label>
+                    <select
+                      value={financeProduct}
+                      onChange={(e) => { 
+                        setFinanceProduct(e.target.value); 
+                        if (e.target.value !== "Other") {
+                          setCustomFinanceProduct("");
+                        }
+                        setErrors(p => { const n = { ...p }; delete n.financeProduct; return n; }); 
+                      }}
+                      className={`rl-input rl-select${errors.financeProduct ? " rl-input-error" : ""}`}
+                    >
+                      <option value="">Select Product</option>
+                      {financeProductOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    {err("financeProduct")}
+                    
+                    {/* Custom Finance Product Input - shown when "Other" is selected */}
+                    {financeProduct === "Other" && (
+                      <input
+                        type="text"
+                        placeholder="Enter custom product name"
+                        value={customFinanceProduct}
+                        onChange={(e) => setCustomFinanceProduct(e.target.value)}
+                        className="rl-input"
+                        style={{ marginTop: "10px" }}
+                        required
+                      />
+                    )}
+                  </div>
+                  <div className="rl-field">
+                    <label className="rl-label">Required Loan Amount <span className="required-asterisk">*</span></label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 50 Lacs"
+                      value={loanAmount}
+                      onChange={(e) => { setLoanAmount(e.target.value); setErrors(p => { const n = { ...p }; delete n.loanAmount; return n; }); }}
+                      className={`rl-input${errors.loanAmount ? " rl-input-error" : ""}`}
+                    />
+                    {err("loanAmount")}
+                  </div>
+                  <div className="rl-field">
+                    <label className="rl-label">Passed On <span className="required-asterisk">*</span></label>
+                    <select
+                      value={passedOn}
+                      onChange={(e) => { setPassedOn(e.target.value); setErrors(p => { const n = { ...p }; delete n.passedOn; return n; }); }}
+                      className={`rl-input rl-select${errors.passedOn ? " rl-input-error" : ""}`}
+                    >
+                      <option value="">Select Senior</option>
+                      {passedOnOptions.map((name) => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                    {err("passedOn")}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -611,8 +1027,13 @@ const RealestateLeadForm = () => {
 
         {/* ── Submission Feedback Modal ── */}
         {modalStatus && (
-          <div className="rl-modal-overlay">
-            <div className="rl-modal-content">
+          <div
+            className="rl-modal-overlay"
+            onClick={() => {
+              if (modalStatus !== "submitting") setModalStatus(null);
+            }}
+          >
+            <div className="rl-modal-content" onClick={(e) => e.stopPropagation()}>
               {modalStatus === "submitting" && (
                 <>
                   <div className="rl-spinner"></div>
@@ -632,8 +1053,71 @@ const RealestateLeadForm = () => {
                   <span className="rl-modal-icon">❌</span>
                   <div className="rl-modal-title">Submission Failed</div>
                   <div className="rl-modal-text">{serverErrorMsg}</div>
+                  <button
+                    type="button"
+                    className="rl-modal-close-btn"
+                    onClick={() => setModalStatus(null)}
+                  >
+                    Close
+                  </button>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {isSummaryOpen && (
+          <div className="rl-modal-overlay" onClick={() => setIsSummaryOpen(false)}>
+            <div className="rl-summary-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="rl-summary-header">
+                <h3>Calling Manager Summary</h3>
+                <button
+                  type="button"
+                  className="rl-summary-close"
+                  onClick={() => setIsSummaryOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="rl-summary-table-wrap">
+                <table className="rl-summary-table">
+                  <thead>
+                    <tr>
+                      <th>Manager</th>
+                      {summaryStatuses.map((status) => (
+                        <th key={status}>{status}</th>
+                      ))}
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summaryManagers.map((manager) => (
+                      <tr key={manager}>
+                        <td>{manager}</td>
+                        {summaryStatuses.map((status) => (
+                          <td key={`${manager}-${status}`}>{summaryMatrix[manager]?.[status] || 0}</td>
+                        ))}
+                        <td style={{ fontWeight: "bold" }}>
+                          {summaryStatuses.reduce((sum, status) => sum + (summaryMatrix[manager]?.[status] || 0), 0)}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr style={{ backgroundColor: "#f0f0f0", fontWeight: "bold" }}>
+                      <td>Total</td>
+                      {summaryStatuses.map((status) => {
+                        const total = summaryManagers.reduce((sum, manager) => sum + (summaryMatrix[manager]?.[status] || 0), 0);
+                        return <td key={`total-${status}`}>{total}</td>;
+                      })}
+                      <td>
+                        {summaryManagers.reduce((grandTotal, manager) =>
+                          grandTotal + summaryStatuses.reduce((sum, status) => sum + (summaryMatrix[manager]?.[status] || 0), 0), 0
+                        )}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -649,47 +1133,106 @@ const RealestateLeadForm = () => {
                 </span>
               )}
             </div>
-            <div className="rl-list-controls">
-              <input
-                type="text"
-                placeholder="🔍 Search by name or mobile..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="rl-input rl-search-bar"
-              />
-              <div className="rl-filters-row">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="rl-input rl-filter-select"
-                >
-                  <option value="All">All Status</option>
-                  {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <select
-                  value={sourceFilter}
-                  onChange={(e) => setSourceFilter(e.target.value)}
-                  className="rl-input rl-filter-select"
-                >
-                  <option value="All">All Sources</option>
-                  {SOURCE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <select
-                  value={managerFilter}
-                  onChange={(e) => setManagerFilter(e.target.value)}
-                  className="rl-input rl-filter-select"
-                >
-                  <option value="All">All Managers</option>
-                  {MANAGERS.map((m) => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <button
-                  onClick={handleExportToExcel}
-                  className="rl-export-btn"
-                  title="Export all leads to Excel"
-                >
-                  📊 Export
-                </button>
+            
+            {/* Row 1: Search Bar */}
+            <div className="rl-search-row">
+              <div className="rl-search-wrapper">
+                <svg className="rl-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search by name or mobile..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="rl-input rl-search-bar"
+                />
               </div>
+            </div>
+            
+            {/* Row 2: All Filters and Buttons */}
+            <div className="rl-filters-row">
+              <select
+                value={leadTypeFilter}
+                onChange={(e) => setLeadTypeFilter(e.target.value)}
+                className="rl-input rl-filter-select"
+              >
+                <option value="All">All Lead Types</option>
+                <option value="realestate">Real Estate</option>
+                <option value="finance">Finance</option>
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rl-input rl-filter-select"
+              >
+                <option value="All">All Status</option>
+                {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="rl-input rl-filter-select"
+              >
+                <option value="All">All Sources</option>
+                {allSourceOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select
+                value={managerFilter}
+                onChange={(e) => setManagerFilter(e.target.value)}
+                className="rl-input rl-filter-select"
+              >
+                <option value="All">All Managers</option>
+                {managerOptions.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <select
+                value={passedOnFilter}
+                onChange={(e) => setPassedOnFilter(e.target.value)}
+                className="rl-input rl-filter-select"
+              >
+                <option value="All">All Passed On</option>
+                {passedOnOptions.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="rl-input rl-filter-select"
+                title="Sort leads by different criteria"
+              >
+                <option value="date">Date</option>
+                <option value="lastModified">Last Modified</option>
+                <option value="callCount">Number of Calls</option>
+              </select>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="rl-input rl-filter-select"
+                title="Sort order"
+              >
+                <option value="desc">Descending ↓</option>
+                <option value="asc">Ascending ↑</option>
+              </select>
+              <button
+                onClick={handleExportToExcel}
+                className="rl-export-btn"
+                title="Export all leads to Excel"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSummaryOpen(true)}
+                className="rl-summary-btn"
+                title="Open manager vs status call summary"
+              >
+                Summary
+              </button>
             </div>
           </div>
 
@@ -701,7 +1244,7 @@ const RealestateLeadForm = () => {
 
           {loadingLeads ? (
             <div className="rl-loader-inline">
-               <span>Fetching records...</span>
+              <span>Fetching records...</span>
             </div>
           ) : (
             <div className="rl-record-grid">
@@ -711,9 +1254,11 @@ const RealestateLeadForm = () => {
                 filteredLeads.map((lead) => (
                   <div key={lead._id} className="rl-record-card">
                     {/* Header: Latest Manager */}
-                    <div className="rl-record-header">
+                    <div className={`rl-record-header ${lead.leadType === "finance" ? "rl-record-header--finance" : ""}`}>
                       <span className="rl-record-manager">{lead.calls[lead.calls.length - 1]?.manager || "No Agent"}</span>
-                      <span className="rl-record-badge">LEAD</span>
+                      <span className={`rl-record-badge ${lead.leadType === "finance" ? "rl-badge-finance" : "rl-badge-realestate"}`}>
+                        {lead.leadType === "finance" ? "Finance Lead" : "Real Estate Lead"}
+                      </span>
                     </div>
 
                     <div className="rl-record-body">
@@ -729,44 +1274,72 @@ const RealestateLeadForm = () => {
                         </div>
                       </div>
 
-                      {/* Row 2: Reference & Lead Date */}
-                      <div className="rl-record-row-2">
-                        <div className="rl-record-cell">
-                          <label className="rl-record-label">REF</label>
-                          <span className="rl-record-val">{lead.referenceOf || "N/A"}</span>
+                      {/* Row 2: Ref & Lead Date — Real Estate shows Project Name too */}
+                      {lead.leadType !== "finance" ? (
+                        <div className="rl-record-row-3">
+                          <div className="rl-record-cell">
+                            <label className="rl-record-label">PROJECT NAME</label>
+                            <span className="rl-record-val">{lead.projectName || "N/A"}</span>
+                          </div>
+                          <div className="rl-record-cell">
+                            <label className="rl-record-label">REF</label>
+                            <span className="rl-record-val">{lead.referenceOf || "N/A"}</span>
+                          </div>
+                          <div className="rl-record-cell">
+                            <label className="rl-record-label">LEAD GENERATED ON</label>
+                            <span className="rl-record-val">{formatDate(lead.leadDate)}</span>
+                          </div>
                         </div>
-                        <div className="rl-record-cell">
-                          <label className="rl-record-label">LEAD GENERATED ON</label>
-                          <span className="rl-record-val">{formatDate(lead.leadDate)}</span>
+                      ) : (
+                        <div className="rl-record-row-2">
+                          <div className="rl-record-cell">
+                            <label className="rl-record-label">REF</label>
+                            <span className="rl-record-val">{lead.referenceOf || "N/A"}</span>
+                          </div>
+                          <div className="rl-record-cell">
+                            <label className="rl-record-label">LEAD GENERATED ON</label>
+                            <span className="rl-record-val">{formatDate(lead.leadDate)}</span>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
-                      {/* Row 3: Product (Source) & Property Type */}
+                      {/* Row 3: Source */}
                       <div className="rl-record-row-2">
                         <div className="rl-record-cell">
                           <label className="rl-record-label">SOURCE</label>
                           <span className="rl-record-val">{lead.source}</span>
                         </div>
-                        <div className="rl-record-cell">
-                          <label className="rl-record-label">PROPERTY TYPE</label>
-                          <span className="rl-record-val">{lead.propertyType || "N/A"}</span>
-                        </div>
+
+                        {/* Real Estate: Property Type | Finance: Loan Amount */}
+                        {lead.leadType !== "finance" ? (
+                          <div className="rl-record-cell">
+                            <label className="rl-record-label">PROPERTY TYPE</label>
+                            <span className="rl-record-val">{lead.propertyType || "N/A"}</span>
+                          </div>
+                        ) : (
+                          <div className="rl-record-cell">
+                            <label className="rl-record-label">LOAN AMOUNT</label>
+                            <span className="rl-record-val">{lead.loanAmount || "N/A"}</span>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Row 4: Budget & Area */}
-                      <div className="rl-record-row-2">
-                        <div className="rl-record-cell">
-                          <label className="rl-record-label">BUDGET</label>
-                          <span className="rl-record-val">{lead.budget || "N/A"}</span>
+                      {/* Real Estate only: Budget & Area */}
+                      {lead.leadType !== "finance" && (
+                        <div className="rl-record-row-2">
+                          <div className="rl-record-cell">
+                            <label className="rl-record-label">BUDGET</label>
+                            <span className="rl-record-val">{lead.budget || "N/A"}</span>
+                          </div>
+                          <div className="rl-record-cell">
+                            <label className="rl-record-label">PREFERRED AREA</label>
+                            <span className="rl-record-val">{lead.preferredArea || "N/A"}</span>
+                          </div>
                         </div>
-                        <div className="rl-record-cell">
-                          <label className="rl-record-label">PREFERRED AREA</label>
-                          <span className="rl-record-val">{lead.preferredArea || "N/A"}</span>
-                        </div>
-                      </div>
+                      )}
 
-                      {/* Row 4b: Size & Category (Residential only) */}
-                      {lead.propertyType === "Residential" && (lead.residentialSize || lead.residentialCategory) && (
+                      {/* Real Estate only: Size & Category (Residential) */}
+                      {lead.leadType !== "finance" && lead.propertyType === "Residential" && (lead.residentialSize || lead.residentialCategory) && (
                         <div className="rl-record-row-2">
                           <div className="rl-record-cell">
                             <label className="rl-record-label">SIZE</label>
@@ -779,8 +1352,8 @@ const RealestateLeadForm = () => {
                         </div>
                       )}
 
-                      {/* Row 4c: Commercial Type */}
-                      {lead.propertyType === "Commercial" && lead.commercialType && (
+                      {/* Real Estate only: Commercial Type */}
+                      {lead.leadType !== "finance" && lead.propertyType === "Commercial" && lead.commercialType && (
                         <div className="rl-record-row-1">
                           <div className="rl-record-cell">
                             <label className="rl-record-label">COMMERCIAL TYPE</label>
@@ -789,8 +1362,18 @@ const RealestateLeadForm = () => {
                         </div>
                       )}
 
+                      {/* Finance only: Product */}
+                      {lead.leadType === "finance" && lead.financeProduct && (
+                        <div className="rl-record-row-1">
+                          <div className="rl-record-cell">
+                            <label className="rl-record-label">PRODUCT</label>
+                            <span className="rl-record-val">{lead.financeProduct}</span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Row 6 & 7: Last Status & Next Follow Up in same row */}
-                      <div className="rl-record-row-2">
+                      <div className="rl-record-row-3">
                         <div className="rl-record-cell">
                           <label className="rl-record-label">LAST STATUS</label>
                           <span className={`rl-record-val rl-status-text status-${(lead.calls[lead.calls.length - 1]?.status || "unknown").toLowerCase().replace(/\s+/g, '-')}`}>
@@ -803,31 +1386,35 @@ const RealestateLeadForm = () => {
                             {lead.calls.some(c => c.followUpDate) ? formatDate([...lead.calls].reverse().find(c => c.followUpDate)?.followUpDate) : "N/A"}
                           </span>
                         </div>
+                        <div className="rl-record-cell">
+                          <label className="rl-record-label">PASSED ON</label>
+                          <span className="rl-record-val">{lead.passedOn || "N/A"}</span>
+                        </div>
                       </div>
 
                       {/* Call History - Collapsible */}
                       {lead.calls.length > 0 && (
-                        <div style={{ borderTop: "1px solid #e0e7f0" }}>
+                        <div className="rl-history-wrap">
                           <button
                             onClick={() => setExpandedHistory(prev => ({ ...prev, [lead._id]: !prev[lead._id] }))}
-                            style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "7px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", fontWeight: "700", color: "#1e3a5f", textTransform: "uppercase", letterSpacing: "0.5px" }}
+                            className="rl-history-toggle"
                           >
                             <span>Call History ({lead.calls.length})</span>
                             <span>{expandedHistory[lead._id] ? "▲" : "▼"}</span>
                           </button>
                           {expandedHistory[lead._id] && (
-                            <div style={{ padding: "0 14px 8px" }}>
+                            <div className="rl-history-content">
                               {lead.calls.map((call, idx) => (
-                                <div key={idx} style={{ background: "#f7f9fc", borderRadius: "5px", padding: "5px 8px", marginBottom: "4px", border: "1px solid #e0e7f0", fontSize: "11px" }}>
-                                  <div style={{ fontWeight: "700", color: "#1e3a5f", marginBottom: "2px" }}>
+                                <div key={idx} className="rl-history-item">
+                                  <div className="rl-history-item-title">
                                     Call #{idx + 1} — {formatDate(call.callingDate)}
                                   </div>
-                                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", color: "#444" }}>
-                                    <span><span style={{ color: "#888", textTransform: "uppercase", fontSize: "10px" }}>Manager: </span>{call.manager || "N/A"}</span>
-                                    <span><span style={{ color: "#888", textTransform: "uppercase", fontSize: "10px" }}>Status: </span>{call.status || "N/A"}</span>
-                                    {call.followUpDate && <span style={{ color: "#c0392b", fontWeight: "600" }}><span style={{ color: "#888", textTransform: "uppercase", fontSize: "10px" }}>Follow Up: </span>{formatDate(call.followUpDate)}</span>}
+                                  <div className="rl-history-item-meta">
+                                    <span><span className="rl-history-meta-label">Manager: </span>{call.manager || "N/A"}</span>
+                                    <span><span className="rl-history-meta-label">Status: </span>{call.status || "N/A"}</span>
+                                    {call.followUpDate && <span className="rl-history-followup"><span className="rl-history-meta-label">Follow Up: </span>{formatDate(call.followUpDate)}</span>}
                                   </div>
-                                  {call.remarks && <div style={{ color: "#555", marginTop: "2px" }}><span style={{ color: "#888", textTransform: "uppercase", fontSize: "10px" }}>Remarks: </span>{call.remarks}</div>}
+                                  {call.remarks && <div className="rl-history-remarks"><span className="rl-history-meta-label">Remarks: </span>{call.remarks}</div>}
                                 </div>
                               ))}
                             </div>

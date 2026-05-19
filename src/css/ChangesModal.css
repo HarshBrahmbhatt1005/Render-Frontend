@@ -23,7 +23,7 @@
   background-color: #ffffff;
   border-radius: 16px;
   width: 650px; /* Slightly wider for increased font size */
-  max-width: 95%;
+  max-width: calc(100vw - 24px);
   max-height: 80vh;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
   display: flex;
@@ -90,7 +90,7 @@
 
 .change-item {
   display: grid;
-  grid-template-columns: 160px 1fr 1fr; /* Adjusted for wider spacing */
+  grid-template-columns: minmax(120px, 160px) minmax(0, 1fr) minmax(0, 1fr); /* Prevent overflow */
   align-items: center;
   padding: 24px 32px; /* Increased padding */
   border-bottom: 1px solid #f1f5f9;
@@ -133,7 +133,9 @@
   font-size: 1.05rem; /* Significantly increased data font size */
   padding: 12px 16px; /* Increased density */
   border-radius: 8px;
-  word-break: break-all;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
   line-height: 1.5;
 }
 
@@ -184,4 +186,40 @@
   padding: 80px 32px;
   color: #94a3b8;
   font-size: 1.1rem;
+}
+
+@media (max-width: 900px) {
+  .changes-modal {
+    max-height: 88vh;
+  }
+
+  .changes-modal-header,
+  .changes-modal-footer {
+    padding: 16px 18px;
+  }
+
+  .changes-modal-header h2 {
+    font-size: 1.15rem;
+    line-height: 1.2;
+    padding-right: 8px;
+  }
+
+  .change-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px 18px;
+  }
+
+  .change-label {
+    font-size: 0.9rem;
+  }
+
+  .val-content {
+    font-size: 0.96rem;
+    padding: 10px 12px;
+  }
+
+  .btn-close {
+    width: 100%;
+  }
 }

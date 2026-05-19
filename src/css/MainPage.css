@@ -1,60 +1,195 @@
-/* Container */
-.main-page {
-  min-height: 100vh;
+/* ── Root ─────────────────────────────────────────── */
+.mp-root {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0e4d91 100%);
+  position: fixed; /* Fix to viewport */
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* ── Decorative blobs ─────────────────────────────── */
+.mp-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.18;
+  pointer-events: none;
+}
+.mp-blob-1 {
+  width: 500px;
+  height: 500px;
+  background: #3b82f6;
+  top: -120px;
+  left: -120px;
+}
+.mp-blob-2 {
+  width: 400px;
+  height: 400px;
+  background: #6366f1;
+  bottom: -100px;
+  right: -80px;
+}
+
+/* ── Content wrapper ──────────────────────────────── */
+.mp-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: linear-gradient(to right, #2aceff, #485fec);
-  color: white;
-  text-align: center;
-  padding: 2rem;
+  gap: 0;
+}
+@media (max-width: 768px) {
+  .mp-content {
+    margin: 0px 20px;
+  }
 }
 
-/* Title */
-.main-title {
+/* ── Header ───────────────────────────────────────── */
+.mp-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.mp-logo {
+  height: 64px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+}
+
+.mp-header-text {
+  text-align: left;
+}
+
+.mp-title {
   font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 2.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
 }
 
-/* Buttons container */
-.button-container {
+.mp-subtitle {
+  font-size: 0.82rem;
+  color: #93c5fd;
+  margin: 4px 0 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Welcome text ─────────────────────────────────── */
+.mp-welcome {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  margin: 18px 0 28px;
+  letter-spacing: 0.03em;
+}
+
+/* ── Cards ────────────────────────────────────────── */
+.mp-cards {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 14px;
 }
 
-/* Buttons */
-.btn {
-  padding: 0.75rem 1.5rem;
-  border-radius: 1rem;
-  font-weight: 600;
-  font-size: 18px;
+.mp-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 18px 20px;
   cursor: pointer;
-  border: none;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s, box-shadow 0.2s;
+  text-align: left;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-/* Hover effect */
-.btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+.mp-card:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.11);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
-/* Specific button colors */
-.customer-btn {
-  background-color: #ffffff;
-  color: #7e22ce; /* purple */
+.mp-card:active {
+  transform: translateY(0);
 }
 
-.project-btn {
-  background-color: #ffffff;
-  color: #ec4899; /* pink */
+/* Icon circle */
+.mp-card-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 14px;
+  background: var(--light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-.lead-btn {
-  background-color: #ffffff;
-  color: #0369a1; /* blue */
+.mp-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mp-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: 0.01em;
+}
+
+.mp-card-desc {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.mp-card-arrow {
+  font-size: 1.2rem;
+  color: var(--accent);
+  font-weight: 700;
+  opacity: 0.8;
+  transition: transform 0.2s;
+}
+
+.mp-card:hover .mp-card-arrow {
+  transform: translateX(4px);
+  opacity: 1;
+}
+
+/* ── Footer ───────────────────────────────────────── */
+.mp-footer {
+  margin-top: 32px;
+  font-size: 0.72rem;
+  color: #475569;
+  letter-spacing: 0.04em;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+@media (max-width: 480px) {
+  .mp-title { font-size: 1.5rem; }
+  .mp-logo  { height: 48px; }
+  .mp-card  { padding: 14px 16px; }
+  .mp-card-icon { width: 44px; height: 44px; min-width: 44px; font-size: 1.2rem; }
 }
