@@ -53,6 +53,31 @@ const formatAmount = (value) => {
   return formatted;
 };
 
+const resolveAmountField = (...values) => {
+  for (const value of values) {
+    if (value !== null && value !== undefined && value !== "") {
+      return value;
+    }
+  }
+  return EMPTY_VALUE;
+};
+
+const formatFlexibleValue = (value) => {
+  const resolved = resolveAmountField(value);
+  if (resolved === EMPTY_VALUE) return EMPTY_VALUE;
+
+  const stringValue = String(resolved).trim();
+  if (!stringValue) return EMPTY_VALUE;
+
+  const cleanedValue = stringValue.replace(/,/g, "");
+  const numericValue = Number(cleanedValue);
+  if (!Number.isNaN(numericValue) && cleanedValue !== "" && cleanedValue !== "0") {
+    return numericValue.toLocaleString("en-IN");
+  }
+
+  return stringValue;
+};
+
 const formatText = (value) => {
   if (value === null || value === undefined || value === "" || value === "•") return EMPTY_VALUE;
   if (Array.isArray(value)) return value.length ? value.join(", ") : EMPTY_VALUE;
@@ -176,6 +201,30 @@ export const generateApplicationPdf = (application) => {
   y += logoHeight + 20; // Add spacing after logo
 
   const sectionsList = [];
+  const productDetails = Array.isArray(application.productDetails) && application.productDetails.length
+    ? application.productDetails
+    : [{
+        product: application.product,
+        otherProduct: application.otherProduct,
+        loginDate: application.loginDate,
+        loginDate1: application.loginDate1,
+        loginDate2: application.loginDate2,
+        category: application.category,
+        otherCategory: application.otherCategory,
+        amount: application.amount,
+        sanctionDate: application.sanctionDate,
+        sanctionAmount: application.sanctionAmount,
+        sanctionDate1: application.sanctionDate1,
+        sanctionAmount1: application.sanctionAmount1,
+        sanctionDate2: application.sanctionDate2,
+        sanctionAmount2: application.sanctionAmount2,
+        disbursedDate: application.disbursedDate,
+        disbursedAmount: application.disbursedAmount,
+        disbursedDate1: application.disbursedDate1,
+        disbursedAmount1: application.disbursedAmount1,
+        disbursedDate2: application.disbursedDate2,
+        disbursedAmount2: application.disbursedAmount2,
+      }];
   sectionsList.push({
     title: "CASE INFORMATION",
     rows: [
@@ -203,6 +252,28 @@ export const generateApplicationPdf = (application) => {
     ],
     dynamicRows: [0, 1, 2], // Bank, product, banker name, loan number can be long
   });
+
+  const isDualProduct = ["HL BT + TOP Up", "Home Loan BT + TOP UP"].includes(resolveOptionValue(application.product, application.otherProduct));
+
+  if (productDetails.length > 1 || isDualProduct) {
+    const productRows = productDetails.flatMap((detail, index) => ([
+      [`Product ${index + 1}`, formatText(resolveOptionValue(detail.product, detail.otherProduct)), `Category ${index + 1}`, formatText(resolveOptionValue(detail.category, detail.otherCategory))],
+      isDualProduct
+        ? [`Login Date 1`, formatDate(detail.loginDate1 || detail.loginDate), `Login Date 2`, formatDate(detail.loginDate2 || "")] 
+        : [`Login Date ${index + 1}`, formatDate(detail.loginDate), `Req Amount ${index + 1}`, formatAmount(detail.amount)],
+      isDualProduct
+        ? [`Sanction Date 1`, formatDate(detail.sanctionDate1 || detail.sanctionDate), `Sanction Amount 1`, formatAmount(detail.sanctionAmount1 || detail.sanctionAmount)]
+        : [`Sanction Date ${index + 1}`, formatDate(detail.sanctionDate), `Sanction Amount ${index + 1}`, formatAmount(detail.sanctionAmount)],
+      isDualProduct
+        ? [`Disbursed Date 1`, formatDate(detail.disbursedDate1 || detail.disbursedDate), `Disbursed Amount 1`, formatAmount(detail.disbursedAmount1 || detail.disbursedAmount)]
+        : [`Disbursed Date ${index + 1}`, formatDate(detail.disbursedDate), `Disbursed Amount ${index + 1}`, formatAmount(detail.disbursedAmount)],
+    ]));
+    sectionsList.push({
+      title: "PRODUCT DETAILS",
+      rows: productRows,
+      dynamicRows: [...productRows.keys()],
+    });
+  }
   
   // PD / INTERNAL CHECK - only remarks row is dynamic
   sectionsList.push({
@@ -266,7 +337,18 @@ export const generateApplicationPdf = (application) => {
     title: "FINAL PAYOUT DETAILS",
     rows: [
       ["Payout (Yes/No)", formatText(application.payout), "Expense Paid By", formatAmount(application.expenceAmount)],
-      ["Fees Refund", formatAmount(application.feesRefundAmount), "", ""],
+      [
+        "Fees Refund",
+        formatFlexibleValue(
+          resolveAmountField(
+            application.feesRefundAmount,
+            application.feesRefund,
+            application.feesRefundAmt
+          )
+        ),
+        "",
+        "",
+      ],
     ],
     dynamicRows: [0, 1], // Make all rows dynamic to accommodate text
   });

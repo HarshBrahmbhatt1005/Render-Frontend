@@ -1,0 +1,183 @@
+/* ── Lead User Login ── */
+.lul-root {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0fdf4 0%, #e8f5e9 100%);
+  position: relative;
+  overflow: hidden;
+  padding: 1rem;
+}
+
+/* Decorative blobs */
+.lul-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+.lul-blob-1 {
+  width: 420px;
+  height: 420px;
+  background: #4ade80;
+  top: -120px;
+  left: -120px;
+}
+.lul-blob-2 {
+  width: 320px;
+  height: 320px;
+  background: #86efac;
+  bottom: -80px;
+  right: -80px;
+}
+
+/* Card */
+.lul-card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+.lul-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.lul-logo {
+  height: 52px;
+  object-fit: contain;
+  margin-bottom: 0.75rem;
+}
+.lul-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f6b3a;
+  margin: 0 0 0.25rem;
+}
+.lul-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Form */
+.lul-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.lul-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.lul-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+.lul-input {
+  padding: 0.65rem 0.9rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #111827;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  background: #f9fafb;
+}
+.lul-input:focus {
+  border-color: #0f6b3a;
+  box-shadow: 0 0 0 3px rgba(15, 107, 58, 0.12);
+  background: #fff;
+}
+.lul-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Password field wrapper */
+.lul-password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.lul-input-pw {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+.lul-eye-btn {
+  position: absolute;
+  right: 0.65rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  transition: color 0.2s;
+  line-height: 1;
+}
+.lul-eye-btn:hover {
+  color: #0f6b3a;
+}
+
+/* Error */
+.lul-error {
+  font-size: 0.85rem;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+}
+
+/* Submit button */
+.lul-btn {
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #0f6b3a, #16a34a);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 0.25rem;
+}
+.lul-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+.lul-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Back button */
+.lul-back-btn {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.55rem;
+  background: transparent;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: #6b7280;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.lul-back-btn:hover:not(:disabled) {
+  border-color: #0f6b3a;
+  color: #0f6b3a;
+}

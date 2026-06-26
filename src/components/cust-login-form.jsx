@@ -42,6 +42,12 @@ const titleCaseFields = new Set([
   "sales",
   "product",
   "category",
+  // ✅ Extra fields that may arrive in ALL-CAPS from legacy data
+  "payout",
+  "consulting",
+  "sourceChannel",
+  "expenceAmount",
+  "feesRefundAmount",
 ]);
 
 const applyTitleCaseToData = (obj) => {
@@ -1450,8 +1456,19 @@ const CustForm = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      const errorMessage = err.response?.data?.error || err.message || "Unknown error";
-      alert("Account Excel export failed: " + errorMessage);
+      // responseType:"blob" means error body is a Blob — read it as text first
+      if (err.response && err.response.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const errData = JSON.parse(text);
+          alert("❌ Account Excel export failed: " + (errData.error || errData.message || `Status ${err.response.status}`));
+        } catch {
+          alert(`❌ Account Excel export failed (status ${err.response.status}). Please check your password and try again.`);
+        }
+      } else {
+        const errorMessage = err.response?.data?.error || err.message || "Unknown error";
+        alert("❌ Account Excel export failed: " + errorMessage);
+      }
     }
   };
 
@@ -1473,7 +1490,17 @@ const CustForm = () => {
       link.click();
       link.remove();
     } catch (err) {
-      alert("Export failed: " + (err.response?.data?.error || err.message));
+      if (err.response && err.response.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const errData = JSON.parse(text);
+          alert("❌ Export failed: " + (errData.error || errData.message || `Status ${err.response.status}`));
+        } catch {
+          alert(`❌ Export failed (status ${err.response.status}). Please check your password and try again.`);
+        }
+      } else {
+        alert("❌ Export failed: " + (err.response?.data?.error || err.message));
+      }
     }
   };
 
@@ -1535,8 +1562,18 @@ const CustForm = () => {
       link.remove();
     } catch (err) {
       console.error("Export error details:", err.response || err); // Enhanced debug log
-      const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Unknown error occurred";
-      alert("Export failed: " + errorMessage);
+      if (err.response && err.response.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const errData = JSON.parse(text);
+          alert("❌ Export failed: " + (errData.error || errData.message || `Status ${err.response.status}`));
+        } catch {
+          alert(`❌ Export failed (status ${err.response.status}). Please check your password and try again.`);
+        }
+      } else {
+        const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Unknown error occurred";
+        alert("Export failed: " + errorMessage);
+      }
     }
   };
 

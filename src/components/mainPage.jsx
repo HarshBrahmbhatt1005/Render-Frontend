@@ -27,6 +27,22 @@ const CARDS = [
     accent: "#0f6b3a",
     light: "#e6f9f0",
   },
+  {
+    route: "/admin/lead-users",
+    icon: "🔐",
+    title: "Admin Leads",
+    desc: "Manage lead users, options, and Excel import",
+    accent: "#9a3412",
+    light: "#fff1e6",
+  },
+  {
+    route: "/visit-form",
+    icon: "🤝",
+    title: "Visit Data",
+    desc: "Record and manage client visit details",
+    accent: "#2196f3",
+    light: "#fdfaf5",
+  },
 ];
 
 const MainPage = () => {
