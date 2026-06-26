@@ -502,7 +502,11 @@ const CustForm = () => {
       console.log("Fetching applications from:", `${API}/api/applications`);
       const res = await axios.get(`${API}/api/applications`);
       console.log("Applications fetched:", res.data);
-      setApplications(Array.isArray(res.data) ? res.data : []);
+      setApplications(
+  Array.isArray(res.data)
+    ? res.data.map((app) => applyTitleCaseToData(app))
+    : []
+);
     } catch (err) {
       console.error("Error fetching applications:", err);
       console.error("Error details:", {
