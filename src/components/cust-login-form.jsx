@@ -7,9 +7,72 @@ import generateApplicationPdf from "../services/applicationPdfService";
 
 
 
+const toTitleCase = (str) => {
+  if (!str || typeof str !== "string") return str;
+  return str
+    .split(" ")
+    .map((word) => {
+      if (word.length === 0) return "";
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+};
+
+const titleCaseFields = new Set([
+  "name",
+  "ref",
+  "bankerName",
+  "propertyDetails",
+  "remark",
+  "finalRemark",
+  "consultingRemark",
+  "subventionRemark",
+  "reloginReason",
+  "rejectedRemark",
+  "withdrawRemark",
+  "holdRemark",
+  "otherCode",
+  "otherProduct",
+  "otherSourceChannel",
+  "otherBank",
+  "otherCategory",
+  "invoiceGeneratedByOther",
+  "payoutPaidVendorName",
+  "expensePaidVendorName",
+  "sales",
+  "product",
+  "category",
+]);
+
+const applyTitleCaseToData = (obj) => {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(item => applyTitleCaseToData(item));
+  }
+  if (typeof obj === "object") {
+    const newObj = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const val = obj[key];
+        if (titleCaseFields.has(key) && typeof val === "string") {
+          newObj[key] = toTitleCase(val);
+        } else if (typeof val === "object") {
+          newObj[key] = applyTitleCaseToData(val);
+        } else {
+          newObj[key] = val;
+        }
+      }
+    }
+    return newObj;
+  }
+  return obj;
+};
+
 const CustForm = () => {
 
   const API = import.meta.env.VITE_API_URL;
+  const TEMP_BYPASS_LOGIN_TO_PD = import.meta.env.VITE_BYPASS_LOGIN_TO_PD === "true";
+  const isDualWorkflowProduct = () => false;
   const initialFormData = {
     code: "",
     otherCode: "",
@@ -18,6 +81,30 @@ const CustForm = () => {
     email: "",
     product: "",
     otherProduct: "",
+    productDetails: [
+      {
+        product: "",
+        otherProduct: "",
+        loginDate: "",
+        loginDate1: "",
+        loginDate2: "",
+        category: "",
+        otherCategory: "",
+        amount: "",
+        sanctionDate: "",
+        sanctionAmount: "",
+        sanctionDate1: "",
+        sanctionAmount1: "",
+        sanctionDate2: "",
+        sanctionAmount2: "",
+        disbursedDate: "",
+        disbursedAmount: "",
+        disbursedDate1: "",
+        disbursedAmount1: "",
+        disbursedDate2: "",
+        disbursedAmount2: "",
+      },
+    ],
     amount: "",
     bank: "",
     otherBank: "",
@@ -26,11 +113,21 @@ const CustForm = () => {
     bankerEmail: "",
     status: "",
     loginDate: "",
+    loginDate1: "",
+    loginDate2: "",
     sanctionDate: "",
     sanctionAmount: "",
+    sanctionDate1: "",
+    sanctionAmount1: "",
+    sanctionDate2: "",
+    sanctionAmount2: "",
     disbursedDate: "",
     loanNumber: "",
     disbursedAmount: "",
+    disbursedDate1: "",
+    disbursedAmount1: "",
+    disbursedDate2: "",
+    disbursedAmount2: "",
     insuranceOption: "",
     insuranceAmount: "",
     subventionOption: "",
@@ -88,6 +185,8 @@ const CustForm = () => {
     reloginReason: "",
     pdStatus: "",
     pdDate: "",
+    pdDate1: "",
+    pdDate2: "",
     rejectedRemark: "",
     withdrawRemark: "",
     holdRemark: "",
@@ -135,6 +234,11 @@ const CustForm = () => {
   const [recentChangesMap, setRecentChangesMap] = useState({});
   // the diff to display in the modal (set when user clicks View Changes on a card)
   const [selectedCardChanges, setSelectedCardChanges] = useState({});
+
+  const getDisplayProductDetails = (app) => {
+    const details = Array.isArray(app.productDetails) && app.productDetails.length ? app.productDetails : [app];
+    return details.slice(0, 10);
+  };
 
   const importantFields = [
     "remark",
@@ -247,6 +351,137 @@ const CustForm = () => {
     if (!mobile) return "";
     const mobileStr = String(mobile);
     return mobileStr.length >= 4 ? "XXXXXX" + mobileStr.slice(-4) : mobileStr;
+  };
+
+  const createBlankProductDetail = () => ({
+    product: "",
+    otherProduct: "",
+    loginDate: "",
+    loginDate1: "",
+    loginDate2: "",
+    status: "",
+    pdStatus: "",
+    pdDate: "",
+    sanctionDate: "",
+    sanctionAmount: "",
+    disbursedDate: "",
+    disbursedAmount: "",
+    partDisbursed: [],
+    reloginReason: "",
+    rejectedRemark: "",
+    withdrawRemark: "",
+    holdRemark: "",
+    category: "",
+    otherCategory: "",
+    amount: "",
+    sanctionDate1: "",
+    sanctionAmount1: "",
+    sanctionDate2: "",
+    sanctionAmount2: "",
+    disbursedDate1: "",
+    disbursedAmount1: "",
+    disbursedDate2: "",
+    disbursedAmount2: "",
+  });
+
+  const formatAmountForInput = (value) => {
+    if (value === null || value === undefined || value === "") return "";
+    const num = Number(String(value).replace(/,/g, ""));
+    return Number.isNaN(num) ? String(value) : num.toLocaleString("en-IN");
+  };
+
+  const normalizeProductDetails = (details) =>
+    (Array.isArray(details) && details.length ? details : [createBlankProductDetail()]).slice(0, 10).map((detail) => ({
+      ...createBlankProductDetail(),
+      ...detail,
+      product: getFieldValue(detail.product, detail.otherProduct),
+      category: getFieldValue(detail.category, detail.otherCategory),
+      status: detail.status || "",
+      pdStatus: detail.pdStatus || "",
+      loginDate: parseIndianDate(detail.loginDate),
+      loginDate1: parseIndianDate(detail.loginDate1),
+      loginDate2: parseIndianDate(detail.loginDate2),
+      pdDate: parseIndianDate(detail.pdDate),
+      amount: formatAmountForInput(detail.amount),
+      sanctionDate: parseIndianDate(detail.sanctionDate),
+      sanctionAmount: formatAmountForInput(detail.sanctionAmount),
+      sanctionDate1: parseIndianDate(detail.sanctionDate1),
+      sanctionAmount1: formatAmountForInput(detail.sanctionAmount1),
+      sanctionDate2: parseIndianDate(detail.sanctionDate2),
+      sanctionAmount2: formatAmountForInput(detail.sanctionAmount2),
+      disbursedDate: parseIndianDate(detail.disbursedDate),
+      disbursedAmount: formatAmountForInput(detail.disbursedAmount),
+      disbursedDate1: parseIndianDate(detail.disbursedDate1),
+      disbursedAmount1: formatAmountForInput(detail.disbursedAmount1),
+      disbursedDate2: parseIndianDate(detail.disbursedDate2),
+      disbursedAmount2: formatAmountForInput(detail.disbursedAmount2),
+      partDisbursed: Array.isArray(detail.partDisbursed) && detail.partDisbursed.length ? detail.partDisbursed : [{ date: "", amount: "" }],
+      reloginReason: detail.reloginReason || "",
+      rejectedRemark: detail.rejectedRemark || "",
+      withdrawRemark: detail.withdrawRemark || "",
+      holdRemark: detail.holdRemark || "",
+    }));
+
+  const getSelectedProductLabel = (detail) => getFieldValue(detail?.product, detail?.otherProduct);
+
+  const isDuplicateProduct = (rows, productValue, currentIndex) => {
+    if (!productValue) return false;
+    return rows.some((row, idx) => idx !== currentIndex && getSelectedProductLabel(row) === productValue);
+  };
+
+  const updateRowStatusField = (index, field, value) => {
+    setFormData((prev) => {
+      const rows = normalizeProductDetails(prev.productDetails);
+      rows[index] = { ...rows[index], [field]: value };
+      return { ...prev, productDetails: rows };
+    });
+  };
+
+  const updateProductDetail = (index, field, value) => {
+    setFormData((prev) => {
+      const rows = normalizeProductDetails(prev.productDetails);
+      if (field === "product" && isDuplicateProduct(rows, value === "Other" ? value : value, index)) {
+        alert("This product has already been selected.");
+        return prev;
+      }
+      const normalizedValue = ["amount", "sanctionAmount", "sanctionAmount1", "sanctionAmount2", "disbursedAmount", "disbursedAmount1", "disbursedAmount2"].includes(field)
+        ? formatAmountForInput(value)
+        : (titleCaseFields.has(field) && typeof value === "string" ? toTitleCase(value) : value);
+      rows[index] = {
+        ...rows[index],
+        [field]: normalizedValue,
+      };
+      if (field === "product" && value !== "Other") rows[index].otherProduct = "";
+      if (field === "category" && value !== "Other") rows[index].otherCategory = "";
+      const next = { ...prev, productDetails: rows };
+      if (index === 0) {
+        if (field === "product") {
+          next.product = normalizedValue;
+          next.otherProduct = value === "Other" ? rows[index].otherProduct || "" : "";
+        }
+        if (field === "loginDate") next.loginDate = normalizedValue;
+        if (field === "loginDate1") next.loginDate1 = normalizedValue;
+        if (field === "loginDate2") next.loginDate2 = normalizedValue;
+        if (field === "category") {
+          next.category = normalizedValue;
+          next.otherCategory = value === "Other" ? rows[index].otherCategory || "" : "";
+        }
+        if (field === "amount") next.amount = normalizedValue;
+        if (field === "sanctionDate") next.sanctionDate = normalizedValue;
+        if (field === "sanctionAmount") next.sanctionAmount = normalizedValue;
+        if (field === "sanctionDate1") next.sanctionDate1 = normalizedValue;
+        if (field === "sanctionAmount1") next.sanctionAmount1 = normalizedValue;
+        if (field === "sanctionDate2") next.sanctionDate2 = normalizedValue;
+        if (field === "sanctionAmount2") next.sanctionAmount2 = normalizedValue;
+        if (field === "disbursedDate") next.disbursedDate = normalizedValue;
+        if (field === "disbursedAmount") next.disbursedAmount = normalizedValue;
+        if (field === "disbursedDate1") next.disbursedDate1 = normalizedValue;
+        if (field === "disbursedAmount1") next.disbursedAmount1 = normalizedValue;
+        if (field === "disbursedDate2") next.disbursedDate2 = normalizedValue;
+        if (field === "disbursedAmount2") next.disbursedAmount2 = normalizedValue;
+      }
+      return next;
+    });
   };
 
   const finalFormData = () => ({
@@ -396,7 +631,11 @@ const CustForm = () => {
     }
 
     // ✅ Default case (simple fields)
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    let finalValue = value;
+    if (titleCaseFields.has(name) && typeof finalValue === "string") {
+      finalValue = toTitleCase(finalValue);
+    }
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
   }, [isApprovedLock]);
 
   // Comparison helper to detect changes
@@ -471,7 +710,7 @@ const CustForm = () => {
       }
 
       try {
-        await axios.patch(`${API}/api/applications/${accountEditId}`, {
+        await axios.patch(`${API}/api/applications/${accountEditId}`, applyTitleCaseToData({
           finalRemark: formData.finalRemark,
           consultingReceived: formData.consultingReceived,
           consultingShared: formData.consultingReceived === "Yes" ? formData.consultingShared : "",
@@ -509,7 +748,7 @@ const CustForm = () => {
           expensePaidInvoiceNumber: formData.expensePaidInvoiceNumber || "",
           expensePaidDate: formData.expensePaidDate || "",
           expensePaidVendorName: formData.expensePaidVendorName || "",
-        });
+        }));
         alert("✅ Final remark and financial data saved! HG approval is now pending.");
         setAccountEditMode(false);
         setAccountEditId(null);
@@ -553,6 +792,34 @@ const CustForm = () => {
         formData.product === "Other" && formData.otherProduct
           ? formData.otherProduct
           : formData.product,
+      productDetails: normalizeProductDetails(formData.productDetails).map((detail, index) => ({
+        ...detail,
+        product: index === 0 ? (formData.product === "Other" && formData.otherProduct ? formData.otherProduct : formData.product) : detail.product,
+        otherProduct: index === 0 ? (formData.product === "Other" ? formData.otherProduct || "" : "") : detail.otherProduct,
+        category: index === 0 ? (formData.category === "Other" && formData.otherCategory ? formData.otherCategory : formData.category) : detail.category,
+        otherCategory: index === 0 ? (formData.category === "Other" ? formData.otherCategory || "" : "") : detail.otherCategory,
+        status: detail.status || (index === 0 ? formData.status : ""),
+        pdStatus: detail.pdStatus || (index === 0 ? formData.pdStatus : ""),
+        pdDate: detail.pdDate || (index === 0 ? formData.pdDate : ""),
+        sanctionDate: detail.sanctionDate || (index === 0 ? formData.sanctionDate : ""),
+        sanctionAmount: detail.sanctionAmount || (index === 0 ? formData.sanctionAmount : ""),
+        disbursedDate: detail.disbursedDate || (index === 0 ? formData.disbursedDate : ""),
+        disbursedAmount: detail.disbursedAmount || (index === 0 ? formData.disbursedAmount : ""),
+        reloginReason: detail.reloginReason || (index === 0 ? formData.reloginReason : ""),
+        rejectedRemark: detail.rejectedRemark || (index === 0 ? formData.rejectedRemark : ""),
+        withdrawRemark: detail.withdrawRemark || (index === 0 ? formData.withdrawRemark : ""),
+        holdRemark: detail.holdRemark || (index === 0 ? formData.holdRemark : ""),
+        loginDate1: detail.loginDate1 || "",
+        loginDate2: detail.loginDate2 || "",
+        sanctionDate1: detail.sanctionDate1 || "",
+        sanctionAmount1: detail.sanctionAmount1 || "",
+        sanctionDate2: detail.sanctionDate2 || "",
+        sanctionAmount2: detail.sanctionAmount2 || "",
+        disbursedDate1: detail.disbursedDate1 || "",
+        disbursedAmount1: detail.disbursedAmount1 || "",
+        disbursedDate2: detail.disbursedDate2 || "",
+        disbursedAmount2: detail.disbursedAmount2 || "",
+      })),
       code:
         formData.code === "Other" && formData.otherCode
           ? formData.otherCode
@@ -571,8 +838,22 @@ const CustForm = () => {
           : formData.category,
       // normalize dates to ISO YYYY-MM-DD for backend
       loginDate: parseIndianDate(formData.loginDate),
+      loginDate1: parseIndianDate(formData.loginDate1),
+      loginDate2: parseIndianDate(formData.loginDate2),
       sanctionDate: parseIndianDate(formData.sanctionDate),
+      sanctionAmount: formData.sanctionAmount ? formData.sanctionAmount.replace(/,/g, "") : "",
+      sanctionDate1: parseIndianDate(formData.sanctionDate1),
+      sanctionAmount1: formData.sanctionAmount1 ? formData.sanctionAmount1.replace(/,/g, "") : "",
+      sanctionDate2: parseIndianDate(formData.sanctionDate2),
+      sanctionAmount2: formData.sanctionAmount2 ? formData.sanctionAmount2.replace(/,/g, "") : "",
       disbursedDate: parseIndianDate(formData.disbursedDate),
+      disbursedAmount: formData.disbursedAmount ? formData.disbursedAmount.replace(/,/g, "") : "",
+      disbursedDate1: parseIndianDate(formData.disbursedDate1),
+      disbursedAmount1: formData.disbursedAmount1 ? formData.disbursedAmount1.replace(/,/g, "") : "",
+      disbursedDate2: parseIndianDate(formData.disbursedDate2),
+      disbursedAmount2: formData.disbursedAmount2 ? formData.disbursedAmount2.replace(/,/g, "") : "",
+      pdDate1: formData.status === "PD" ? parseIndianDate(formData.pdDate1) : "",
+      pdDate2: formData.status === "PD" ? parseIndianDate(formData.pdDate2) : "",
       // ensure reloginReason is only sent when status is Re-Login
       reloginReason: formData.status === "Re-Login" ? formData.reloginReason || "" : "",
       // ensure pdStatus and pdDate are only sent when status is PD
@@ -622,8 +903,10 @@ const CustForm = () => {
       expensePaidVendorName: formData.expensePaidVendorName || "",
     };
 
+    const processedFinalData = applyTitleCaseToData(finalData);
+
     // Debug: show payload sent to server (remove in production)
-    console.debug("Submitting application payload:", finalData);
+    console.debug("Submitting application payload:", processedFinalData);
 
     try {
       if (editingId) {
@@ -656,7 +939,7 @@ const CustForm = () => {
         const hasAnyChanges = Object.keys(mergedChanges).length > 0;
 
         await axios.patch(`${API}/api/applications/${editingId}`, {
-          ...finalData,
+          ...processedFinalData,
           approvalStatus: resetApprovalLocal
             ? "Pending"
             : formData.approvalStatus,
@@ -667,10 +950,10 @@ const CustForm = () => {
         });
         alert("✅ Application updated!");
       } else if (accountEditMode && accountEditId) {
-        await axios.patch(`${API}/api/applications/${accountEditId}`, finalData);
+        await axios.patch(`${API}/api/applications/${accountEditId}`, processedFinalData);
         alert("✅ Account Details Updated!");
       } else {
-        await axios.post(`${API}/api/applications`, finalData);
+        await axios.post(`${API}/api/applications`, processedFinalData);
         alert("✅ Application saved!");
       }
 
@@ -710,8 +993,14 @@ const CustForm = () => {
         };
 
         const formattedLoginDate = formatDateForInput(app.loginDate);
+        const formattedLoginDate1 = formatDateForInput(app.loginDate1);
+        const formattedLoginDate2 = formatDateForInput(app.loginDate2);
         const formattedDisbursedDate = formatDateForInput(app.disbursedDate);
+        const formattedDisbursedDate1 = formatDateForInput(app.disbursedDate1);
+        const formattedDisbursedDate2 = formatDateForInput(app.disbursedDate2);
         const formattedSanctionDate = formatDateForInput(app.sanctionDate);
+        const formattedSanctionDate1 = formatDateForInput(app.sanctionDate1);
+        const formattedSanctionDate2 = formatDateForInput(app.sanctionDate2);
 
         // ✅ Check approval lock
         const approved = app.approvalStatus === "Approved by SB";
@@ -743,19 +1032,31 @@ const CustForm = () => {
         const resolvedProduct = resolveOtherField(app.product, knownProducts);
         const resolvedSource = resolveOtherField(app.sourceChannel, knownSourceChannels);
         const resolvedCategory = resolveOtherField(app.category, knownCategories);
-
+        const normalizedProductDetails = normalizeProductDetails(app.productDetails && app.productDetails.length ? app.productDetails : [app]);
         // ✅ Always initialize partDisbursed properly
         setFormData({
           ...app,
            reloginReason: app.reloginReason || "",
            pdStatus: app.pdStatus || "",
            pdDate: app.pdDate ? formatDateForInput(app.pdDate) : "",
+           pdDate1: app.pdDate1 ? formatDateForInput(app.pdDate1) : "",
+           pdDate2: app.pdDate2 ? formatDateForInput(app.pdDate2) : "",
            rejectedRemark: app.rejectedRemark || "",
            withdrawRemark: app.withdrawRemark || "",
            holdRemark: app.holdRemark || "",
           loginDate: formattedLoginDate,
+          loginDate1: formattedLoginDate1,
+          loginDate2: formattedLoginDate2,
           sanctionDate: formattedSanctionDate,
+          sanctionDate1: formattedSanctionDate1,
+          sanctionAmount1: formatAmountForDisplay(app.sanctionAmount1),
+          sanctionDate2: formattedSanctionDate2,
+          sanctionAmount2: formatAmountForDisplay(app.sanctionAmount2),
           disbursedDate: formattedDisbursedDate,
+          disbursedDate1: formattedDisbursedDate1,
+          disbursedAmount1: formatAmountForDisplay(app.disbursedAmount1),
+          disbursedDate2: formattedDisbursedDate2,
+          disbursedAmount2: formatAmountForDisplay(app.disbursedAmount2),
           propertyType: app.propertyType || "",
           status: app.status || "",
           // ✅ Restore "Other" selects properly
@@ -769,6 +1070,23 @@ const CustForm = () => {
           otherSourceChannel: resolvedSource.other,
           category: resolvedCategory.select,
           otherCategory: resolvedCategory.other,
+          productDetails: normalizedProductDetails.map((detail, index) => ({
+            ...detail,
+            product: index === 0 ? resolvedProduct.select : detail.product,
+            otherProduct: index === 0 ? resolvedProduct.other : detail.otherProduct,
+            category: index === 0 ? resolvedCategory.select : detail.category,
+            otherCategory: index === 0 ? resolvedCategory.other : detail.otherCategory,
+            loginDate1: detail.loginDate1 || "",
+            loginDate2: detail.loginDate2 || "",
+            sanctionDate1: detail.sanctionDate1 || "",
+            sanctionAmount1: detail.sanctionAmount1 || "",
+            sanctionDate2: detail.sanctionDate2 || "",
+            sanctionAmount2: detail.sanctionAmount2 || "",
+            disbursedDate1: detail.disbursedDate1 || "",
+            disbursedAmount1: detail.disbursedAmount1 || "",
+            disbursedDate2: detail.disbursedDate2 || "",
+            disbursedAmount2: detail.disbursedAmount2 || "",
+          })),
           // ✅ Format insurance and subvention amounts with commas
           insuranceAmount: formatAmountForDisplay(app.insuranceAmount),
           subventionAmount: formatAmountForDisplay(app.subventionAmount),
@@ -847,6 +1165,7 @@ const CustForm = () => {
           otherSourceChannel: resolvedSource.other,
           category: resolvedCategory.select,
           otherCategory: resolvedCategory.other,
+          productDetails: normalizedProductDetails,
           insuranceAmount: formatAmountForDisplay(app.insuranceAmount),
           subventionAmount: formatAmountForDisplay(app.subventionAmount),
           amount: formatAmountForDisplay(app.amount),
@@ -932,6 +1251,7 @@ const CustForm = () => {
         // Load the application data
         setFormData({
           ...app,
+          productDetails: normalizeProductDetails(app.productDetails && app.productDetails.length ? app.productDetails : [app]),
           loginDate: formatDateForInput(app.loginDate),
           sanctionDate: formatDateForInput(app.sanctionDate),
           disbursedDate: formatDateForInput(app.disbursedDate),
@@ -1502,7 +1822,9 @@ const formatAmount = (value) => {
           ].map((opt) => {
             // Determine which statuses are selectable based on workflow rules
             let statusDisabled = isFieldDisabled("status");
-            if (!statusDisabled) {
+            if (TEMP_BYPASS_LOGIN_TO_PD) {
+              statusDisabled = false;
+            } else if (!statusDisabled) {
               if (!editingId) {
                 // New entry: only Login allowed
                 statusDisabled = opt !== "Login";
@@ -1551,16 +1873,33 @@ const formatAmount = (value) => {
               ))}
             </div>
 
-            <label>PD Date</label>
-            <input
-              type="date"
-              name="pdDate"
-              value={formData.pdDate || ""}
-              max={today}
-              onChange={handleChange}
-              disabled={isFieldDisabled("pdDate")}
-              required
-            />
+            {formData.pdStatus === "Yes" && (
+              isDualWorkflowProduct(formData.product, formData.otherProduct) ? (
+                <div className="cf-grid">
+                  <div>
+                    <label>PD Date 1</label>
+                    <input type="date" name="pdDate1" value={formData.pdDate1 || ""} max={today} onChange={handleChange} disabled={isFieldDisabled("pdDate")} required />
+                  </div>
+                  <div>
+                    <label>PD Date 2</label>
+                    <input type="date" name="pdDate2" value={formData.pdDate2 || ""} max={today} onChange={handleChange} disabled={isFieldDisabled("pdDate")} required />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <label>PD Date</label>
+                  <input
+                    type="date"
+                    name="pdDate"
+                    value={formData.pdDate || ""}
+                    max={today}
+                    onChange={handleChange}
+                    disabled={isFieldDisabled("pdDate")}
+                    required
+                  />
+                </>
+              )
+            )}
           </>
         )}
         {/* ===== REJECTED REMARK (only when status = Rejected) ===== */}
@@ -1893,47 +2232,54 @@ const formatAmount = (value) => {
         {/* ── Section: Product & Loan Details ── */}
         </div>{/* end cf-section-card: Status */}
         <div className="cf-section-card">
-        <div className="cf-section-header">💰 Product & Loan Details</div>
-        <div className="cf-grid">
-          <div>
-            {/* Product */} <label>Product</label>
-            <select name="product" value={formData.product} onChange={handleChange} disabled={isFieldDisabled("product")} required>
-              <option value="">Select Product</option>
-              <option value="Home Loan">Home Loan</option>
-              <option value="HL Top Up">Home Loan TOP UP</option>
-              <option value="HL BT + TOP Up">Home Loan BT + TOP UP</option>
-              <option value="Commercial Purchase">Commercial Purchase</option>
-              <option value="LAP">Loan Against Property</option>
-              <option value="Lap Top Up">Loan Against Property BT + TOP UP</option>
-              <option value="Land PUR">Land Purchase</option>
-              <option value="PLOT + CONSTRUCTION">Plot Purchase + Construction</option>
-              <option value="LRD Pur">Lease Rental Discount Purchase</option>
-              <option value="Industrial Purchase">Industrial Purchase</option>
-              <option value="Inventory Funding">Inventory Funding</option>
-              <option value="Project Loan">Project Loan</option>
-              <option value="Other">Other</option>
-            </select>
-            {formData.product === "Other" && (
-              <input type="text" placeholder="Enter Product" value={formData.otherProduct} disabled={isFieldDisabled("otherProduct")} onChange={(e) => setFormData({ ...formData, otherProduct: e.target.value })} />
-            )}
-          </div>
-          <div>
-            {/* Login Date */} <label>Login Date</label>
-            <input type="date" name="loginDate" value={formData.loginDate} max={today} onChange={handleChange} disabled={isFieldDisabled("loginDate")} required />
-          </div>
-          <div>
-            {/* Category */} <label>Category</label>
-            <select name="category" value={formData.category} onChange={handleChange} disabled={isFieldDisabled("category")} required>
-              <option value="">Select Category</option>
-              <option value="salaried">Salaried</option>
-              <option value="self-employed">Self-Employed</option>
-              <option value="Other">Other</option>
-            </select>
-            {formData.category === "Other" && (
-              <input type="text" placeholder="Enter other Category" value={formData.otherCategory} disabled={isFieldDisabled("otherCategory")} onChange={(e) => setFormData({ ...formData, otherCategory: e.target.value })} />
-            )}
-          </div>
-        </div>
+          <div className="cf-section-header">💰 Product & Loan Details</div>
+          {(formData.productDetails || []).slice(0, 1).map((detail, index) => (
+            <div key={index} style={{ padding: "14px", border: "1px solid #dbe4ef", borderRadius: "8px", margin: "12px 0", background: "#f8fafc" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", fontWeight: 700 }}>
+                <span>Product Details</span>
+              </div>
+              <div className="cf-grid">
+                <div>
+                  <label>Product</label>
+                  <select value={detail.product || ""} onChange={(e) => updateProductDetail(index, "product", e.target.value)} disabled={isFieldDisabled("product")} required>
+                    <option value="">Select Product</option>
+                    <option value="Home Loan">Home Loan</option>
+                    <option value="HL Top Up">Home Loan TOP UP</option>
+                    <option value="HL BT + TOP Up">Home Loan BT + TOP UP</option>
+                    <option value="Commercial Purchase">Commercial Purchase</option>
+                    <option value="LAP">Loan Against Property</option>
+                    <option value="Lap Top Up">Loan Against Property BT + TOP UP</option>
+                    <option value="Land PUR">Land Purchase</option>
+                    <option value="PLOT + CONSTRUCTION">Plot Purchase + Construction</option>
+                    <option value="LRD Pur">Lease Rental Discount Purchase</option>
+                    <option value="Industrial Purchase">Industrial Purchase</option>
+                    <option value="Inventory Funding">Inventory Funding</option>
+                    <option value="Project Loan">Project Loan</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {detail.product === "Other" && (
+                    <input type="text" placeholder="Enter Product" value={detail.otherProduct || ""} disabled={isFieldDisabled("otherProduct")} onChange={(e) => updateProductDetail(index, "otherProduct", e.target.value)} />
+                  )}
+                </div>
+                <div>
+                  <label>Login Date</label>
+                  <input type="date" value={detail.loginDate || ""} max={today} onChange={(e) => updateProductDetail(index, "loginDate", e.target.value)} disabled={isFieldDisabled("loginDate")} required />
+                </div>
+                <div>
+                  <label>Category</label>
+                  <select value={detail.category || ""} onChange={(e) => updateProductDetail(index, "category", e.target.value)} disabled={isFieldDisabled("category")} required>
+                    <option value="">Select Category</option>
+                    <option value="salaried">Salaried</option>
+                    <option value="self-employed">Self-Employed</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {detail.category === "Other" && (
+                    <input type="text" placeholder="Enter other Category" value={detail.otherCategory || ""} disabled={isFieldDisabled("otherCategory")} onChange={(e) => updateProductDetail(index, "otherCategory", e.target.value)} />
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>{/* end cf-section-card: Product */}
 
         {/* ── Section: Property Details ── */}
@@ -2700,7 +3046,6 @@ const formatAmount = (value) => {
         ? app.partDisbursed[app.partDisbursed.length - 1]
         : null;
     const visibleLastChanges = getDisplayChanges(app.lastChanges);
-
     return (
       <div key={app._id} className="card">
         <div className="card-header">
@@ -2779,6 +3124,27 @@ const formatAmount = (value) => {
                 <span className="info-label">Product</span>
                 <span className="info-value highlight-yellow">{app.product}</span>
               </div>
+              {getDisplayProductDetails(app).length > 1 && (
+                <div className="info-row" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+                  <span className="info-label">All Products</span>
+                  <div style={{ width: "100%" }}>
+                    {getDisplayProductDetails(app).map((detail, index) => (
+                      <div key={index} style={{ padding: "8px 0", borderTop: index === 0 ? "none" : "1px dashed #cbd5e1" }}>
+                        <div><strong>Product {index + 1}:</strong> {detail.product === "Other" ? detail.otherProduct : detail.product || "-"}</div>
+                        {isDualWorkflowProduct(detail.product, detail.otherProduct) ? (
+                          <>
+                            <div><strong>Login Date 1:</strong> {safeFormatDate(detail.loginDate1)}</div>
+                            <div><strong>Login Date 2:</strong> {safeFormatDate(detail.loginDate2)}</div>
+                          </>
+                        ) : (
+                          <div><strong>Login Date:</strong> {safeFormatDate(detail.loginDate)}</div>
+                        )}
+                        <div><strong>Category:</strong> {detail.category === "Other" ? detail.otherCategory : detail.category || "-"}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="info-row">
                 <span className="info-label">Req Amount</span>
                 <span className="info-value highlight-yellow">{app.amount}</span>
@@ -2799,7 +3165,11 @@ const formatAmount = (value) => {
               </div>
               <div className="info-row">
                 <span className="info-label">Login Date</span>
-                <span className="info-value">{safeFormatDate(app.loginDate)}</span>
+                <span className="info-value">
+                  {isDualWorkflowProduct(app.product, app.otherProduct)
+                    ? `${safeFormatDate(app.loginDate1)} / ${safeFormatDate(app.loginDate2)}`
+                    : safeFormatDate(app.loginDate)}
+                </span>
               </div>
             </div>
           </div>
@@ -2808,14 +3178,25 @@ const formatAmount = (value) => {
             <div className="card-section">
                {app.status === "Disbursed" && (
                  <div className="status-box disbursed">
-                   <div className="info-row">
-                      <span className="info-label">Disbursed Dt</span>
-                      <span className="info-value">{safeFormatDate(app.disbursedDate)}</span>
-                   </div>
-                   <div className="info-row">
-                      <span className="info-label">Disbursed Amt</span>
-                      <span className="info-value">{app.disbursedAmount}</span>
-                   </div>
+                   {isDualWorkflowProduct(app.product, app.otherProduct) ? (
+                     <>
+                       <div className="info-row"><span className="info-label">Disbursed Dt 1</span><span className="info-value">{safeFormatDate(app.disbursedDate1)}</span></div>
+                       <div className="info-row"><span className="info-label">Disbursed Amt 1</span><span className="info-value">{app.disbursedAmount1 || "â€”"}</span></div>
+                       <div className="info-row"><span className="info-label">Disbursed Dt 2</span><span className="info-value">{safeFormatDate(app.disbursedDate2)}</span></div>
+                       <div className="info-row"><span className="info-label">Disbursed Amt 2</span><span className="info-value">{app.disbursedAmount2 || "â€”"}</span></div>
+                     </>
+                   ) : (
+                     <>
+                       <div className="info-row">
+                          <span className="info-label">Disbursed Dt</span>
+                          <span className="info-value">{safeFormatDate(app.disbursedDate)}</span>
+                       </div>
+                       <div className="info-row">
+                          <span className="info-label">Disbursed Amt</span>
+                          <span className="info-value">{app.disbursedAmount}</span>
+                       </div>
+                     </>
+                   )}
                    {app.loanNumber && (
                       <div className="info-row">
                         <span className="info-label">Loan A/C No</span>
@@ -2827,14 +3208,25 @@ const formatAmount = (value) => {
 
                {app.status === "Sanction" && (
                  <div className="status-box sanction">
-                    <div className="info-row">
-                      <span className="info-label">Sanction Dt</span>
-                      <span className="info-value">{safeFormatDate(app.sanctionDate)}</span>
-                    </div>
-                    <div className="info-row">
-                      <span className="info-label">Sanction Amt</span>
-                      <span className="info-value">{app.sanctionAmount}</span>
-                    </div>
+                    {isDualWorkflowProduct(app.product, app.otherProduct) ? (
+                      <>
+                        <div className="info-row"><span className="info-label">Sanction Dt 1</span><span className="info-value">{safeFormatDate(app.sanctionDate1)}</span></div>
+                        <div className="info-row"><span className="info-label">Sanction Amt 1</span><span className="info-value">{app.sanctionAmount1 || "â€”"}</span></div>
+                        <div className="info-row"><span className="info-label">Sanction Dt 2</span><span className="info-value">{safeFormatDate(app.sanctionDate2)}</span></div>
+                        <div className="info-row"><span className="info-label">Sanction Amt 2</span><span className="info-value">{app.sanctionAmount2 || "â€”"}</span></div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="info-row">
+                          <span className="info-label">Sanction Dt</span>
+                          <span className="info-value">{safeFormatDate(app.sanctionDate)}</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Sanction Amt</span>
+                          <span className="info-value">{app.sanctionAmount}</span>
+                        </div>
+                      </>
+                    )}
                  </div>
                )}
 
@@ -2857,10 +3249,17 @@ const formatAmount = (value) => {
                         <span className="info-label">PD Status</span>
                         <span className="info-value">{app.pdStatus || "—"}</span>
                      </div>
-                     <div className="info-row">
-                        <span className="info-label">PD Date</span>
-                        <span className="info-value">{app.pdDate ? formatDateToIndian(app.pdDate) : "—"}</span>
-                     </div>
+                     {isDualWorkflowProduct(app.product, app.otherProduct) ? (
+                       <>
+                         <div className="info-row"><span className="info-label">PD Date 1</span><span className="info-value">{app.pdDate1 ? formatDateToIndian(app.pdDate1) : "—"}</span></div>
+                         <div className="info-row"><span className="info-label">PD Date 2</span><span className="info-value">{app.pdDate2 ? formatDateToIndian(app.pdDate2) : "—"}</span></div>
+                       </>
+                     ) : (
+                       <div className="info-row">
+                          <span className="info-label">PD Date</span>
+                          <span className="info-value">{app.pdDate ? formatDateToIndian(app.pdDate) : "—"}</span>
+                       </div>
+                     )}
                   </div>
                )}
 
