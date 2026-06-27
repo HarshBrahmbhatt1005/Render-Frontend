@@ -314,8 +314,6 @@ const VisitForm = () => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [cardsLoading, setCardsLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadPassword, setUploadPassword] = useState("");
   
   // Search & Filter States
   const [searchTerm, setSearchTerm] = useState("");
@@ -450,69 +448,7 @@ const VisitForm = () => {
     }
   };
 
-  const handleBulkUpload = () => {
-    // Directly click the file input to satisfy browser security
-    document.getElementById("bulk-upload-input").click();
-  };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const password = prompt("Enter password for bulk upload:");
-    if (!password) {
-      e.target.value = "";
-      return;
-    }
-
-    setUploading(true);
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const arrayBuffer = event.target.result;
-        // Convert ArrayBuffer to base64
-        const base64 = btoa(
-          new Uint8Array(arrayBuffer)
-            .reduce((data, byte) => data + String.fromCharCode(byte), "")
-        );
-
-        // Upload in 500KB chunks (approx 680,000 base64 chars) to avoid Render's 1MB payload limits
-        const chunkSize = 500000;
-        const totalChunks = Math.ceil(base64.length / chunkSize);
-        const uploadId = Math.random().toString(36).substring(7);
-
-        for (let i = 0; i < totalChunks; i++) {
-          const chunk = base64.substring(i * chunkSize, (i + 1) * chunkSize);
-          await axios.post(`${API_BASE_URL}/import/excel/chunk`, {
-            password,
-            uploadId,
-            chunk,
-            chunkIndex: i,
-            totalChunks,
-          });
-        }
-
-        const res = await axios.post(`${API_BASE_URL}/import/excel/assemble`, {
-          password,
-          uploadId,
-        });
-
-        alert(res.data.message || "Bulk upload completed successfully!");
-        fetchVisits();
-      } catch (err) {
-        console.error("Bulk upload error:", err);
-        alert(err.response?.data?.error || "Bulk upload failed.");
-      } finally {
-        setUploading(false);
-        e.target.value = "";
-      }
-    };
-    reader.onerror = () => {
-      alert("Error reading file");
-      setUploading(false);
-    };
-    reader.readAsArrayBuffer(file);
-  };
 
   return (
     <div className="visit-form-container">
@@ -630,21 +566,6 @@ const VisitForm = () => {
                 </svg>
               </div>
             </button>
-            <button onClick={handleBulkUpload} className="upload-cta-inline" disabled={uploading}>
-              <span>{uploading ? "Uploading..." : "Bulk Upload"}</span>
-              <div className="cta-icon-pill">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>
-                </svg>
-              </div>
-            </button>
-            <input 
-              type="file" 
-              id="bulk-upload-input" 
-              accept=".xlsx" 
-              style={{ display: 'none' }} 
-              onChange={handleFileChange}
-            />
           </div>
         </div>
 
