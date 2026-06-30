@@ -22,7 +22,7 @@ const SVG_SEARCH = (
   </svg>
 );
 
-const SEGMENTS = ["Customer", "CA", "Builder /Salesperson", "Broker", "DSA"];
+const SEGMENTS = ["Customer", "CA", "Builder /Salesperson", "Broker", "DSA", "Other"];
 const OPTIONS = [
   "Sai Fakira",
   "Sahdev Bhavsar",
@@ -211,91 +211,112 @@ const toTitleCase = (str) => {
   return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 };
 
-const EditModal = ({ visit, onUpdate, onClose }) => {
-  const [editData, setEditData] = useState({ ...visit });
-  
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    if ((name === "contactNumber" || name === "alternativeNumber") && value.length > 10) return;
-    setEditData(prev => ({ ...prev, [name]: value }));
-  };
+const MOBILE_RESPONSIVE_STYLE = `
+@media (max-width: 768px) {
+  .visit-form-container {
+    margin: 1rem auto !important;
+    padding: 1.5rem !important;
+    border-radius: 16px !important;
+  }
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    padding: 1.5rem !important;
+    gap: 1rem !important;
+  }
+  .form-grid-wrapper {
+    margin: 1.5rem 0 !important;
+    border-radius: 18px !important;
+  }
+  .filters-section {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 1.5rem !important;
+    gap: 1rem !important;
+  }
+  .filters-section-container {
+    margin: 2rem auto !important;
+    padding: 0 1rem;
+  }
+  .date-range-inputs {
+    flex-direction: column !important;
+    border-radius: 16px !important;
+    padding: 0.5rem !important;
+    height: auto !important;
+  }
+  .date-separator {
+    display: none !important;
+  }
+  .visit-cards-container {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+    padding: 0 1rem !important;
+  }
+  .visit-card {
+    padding: 1.5rem !important;
+  }
+}
+`;
 
-  const handleAddRevisitInEdit = (date) => {
-    if (!date) return;
-    setEditData(prev => ({
-      ...prev,
-      revisitDates: [...prev.revisitDates, date],
-    }));
-  };
-
-  const removeRevisitInEdit = (index) => {
-    setEditData(prev => ({
-      ...prev,
-      revisitDates: prev.revisitDates.filter((_, i) => i !== index),
-    }));
-  };
-
+const VisitCard = React.memo(({ visit, onEdit, maskPhone, toTitleCase, SVG_CALENDAR }) => {
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h2>Modify Visit Entry</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+    <div className="visit-card">
+      <div className="card-top-row">
+        <div className="card-client-info">
+          <h4>{toTitleCase(visit.clientName)}</h4>
+          <p>{toTitleCase(visit.companyName) || "No Company"}</p>
         </div>
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Client Name</label>
-            <input type="text" name="clientName" value={editData.clientName} onChange={handleEditChange} />
-          </div>
-          <div className="form-group">
-            <label>Company Name</label>
-            <input type="text" name="companyName" value={editData.companyName} onChange={handleEditChange} />
-          </div>
-          <CustomSelect label="Segment" name="segment" value={editData.segment} options={SEGMENTS} onChange={handleEditChange} />
-          <div className="form-group">
-            <label>Contact Number (10 Digits)</label>
-            <input type="number" name="contactNumber" value={editData.contactNumber} onChange={handleEditChange} />
-          </div>
-          <div className="form-group">
-            <label>Alternative Number</label>
-            <input type="number" name="alternativeNumber" value={editData.alternativeNumber} onChange={handleEditChange} />
-          </div>
-          <div className="form-group">
-            <label>Area</label>
-            <input type="text" name="area" value={editData.area} onChange={handleEditChange} />
-          </div>
-          <CustomSelect label="Reference By" name="referenceBy" value={editData.referenceBy} options={OPTIONS} onChange={handleEditChange} />
-          <CustomSelect label="Source" name="source" value={editData.source} options={OPTIONS} onChange={handleEditChange} />
-          <CustomSelect label="Meeting With" name="meetingWith" value={editData.meetingWith} options={OPTIONS} onChange={handleEditChange} />
-          <CustomDatePicker label="Meeting Date" name="meetingDate" value={editData.meetingDate} onChange={handleEditChange} />
-          
-          <div className="revisit-dates-section">
-            <div className="revisit-header">
-              <h3>Follow-up Schedule</h3>
-              <CustomDatePicker minimal name="revisit" value="" onChange={(e) => handleAddRevisitInEdit(e.target.value)} />
-            </div>
-            {editData.revisitDates.length > 0 ? (
-              <div className="revisit-grid">
-                {editData.revisitDates.map((date, index) => (
-                  <div key={index} className="revisit-item">
-                    {new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                    <button type="button" onClick={() => removeRevisitInEdit(index)}>×</button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ opacity: 0.5, fontSize: '0.8rem', fontStyle: 'italic' }}>No additional dates set.</p>
-            )}
-          </div>
+        <span className="card-badge-id">REC_{visit.srNo}</span>
+      </div>
+      
+      <div className="card-details-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', rowGap: '1.2rem', columnGap: '1rem' }}>
+        <div className="detail-item">
+          <span className="detail-label">Category</span>
+          <span className="detail-value" style={{ color: '#2563eb' }}>{visit.segment || "N/A"}</span>
         </div>
-        <div className="modal-footer">
-          <button className="cancel-btn" onClick={onClose}>Discard Changes</button>
-          <button className="save-btn" onClick={() => onUpdate(editData)}>Persist Changes</button>
+        <div className="detail-item">
+          <span className="detail-label">Contact</span>
+          <span className="detail-value">{maskPhone(visit.contactNumber)}</span>
+        </div>
+        <div className="detail-item">
+          <span className="detail-label">Location / Area</span>
+          <span className="detail-value">{visit.area || "N/A"}</span>
+        </div>
+        <div className="detail-item">
+          <span className="detail-label">Source</span>
+          <span className="detail-value">{visit.source || "Direct"}</span>
+        </div>
+        <div className="detail-item">
+          <span className="detail-label">Reference By</span>
+          <span className="detail-value">{visit.referenceBy || "N/A"}</span>
+        </div>
+        <div className="detail-item">
+          <span className="detail-label">Meeting With</span>
+          <span className="detail-value">{visit.meetingWith || "N/A"}</span>
+        </div>
+      </div>
+
+      <div className="card-footer-new">
+        <div className="footer-date-row">
+          <span className="calendar-icon">{SVG_CALENDAR}</span>
+          <span>Visit Date: {new Date(visit.meetingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+        </div>
+        <div className="footer-actions-row">
+          {visit.revisitDates && visit.revisitDates.length > 0 ? (
+            <span className="footer-pill-badge">{visit.revisitDates.length} Follow-ups</span>
+          ) : (
+            <span className="footer-pill-badge empty">No Follow-ups</span>
+          )}
+          <button className="edit-record-btn" onClick={() => onEdit(visit)}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '6px' }}>
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit Record
+          </button>
         </div>
       </div>
     </div>
   );
-};
+});
 
 const VisitForm = () => {
   const [formData, setFormData] = useState({
@@ -322,6 +343,73 @@ const VisitForm = () => {
   const [activeEditingId, setActiveEditingId] = useState(null);
   const [editingVisit, setEditingVisit] = useState(null);
 
+  const [showOtherInput, setShowOtherInput] = useState({
+    segment: false,
+    referenceBy: false,
+    source: false,
+    meetingWith: false,
+  });
+
+  const handleSelectChange = (e) => {
+    const { name, value } = e.target;
+    if (value === "Other") {
+      setShowOtherInput(prev => ({ ...prev, [name]: true }));
+      setFormData(prev => ({ ...prev, [name]: "" }));
+    } else {
+      setShowOtherInput(prev => ({ ...prev, [name]: false }));
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const startEdit = (visit) => {
+    setEditingVisit(visit);
+    setFormData({
+      clientName: visit.clientName || "",
+      companyName: visit.companyName || "",
+      segment: visit.segment || "",
+      contactNumber: visit.contactNumber || "",
+      alternativeNumber: visit.alternativeNumber || "",
+      area: visit.area || "",
+      referenceBy: visit.referenceBy || "",
+      source: visit.source || "",
+      meetingWith: visit.meetingWith || "",
+      meetingDate: visit.meetingDate ? new Date(visit.meetingDate).toISOString().split('T')[0] : "",
+      revisitDates: visit.revisitDates || [],
+    });
+
+    setShowOtherInput({
+      segment: visit.segment ? !SEGMENTS.slice(0, -1).includes(visit.segment) : false,
+      referenceBy: visit.referenceBy ? !OPTIONS.slice(0, -1).includes(visit.referenceBy) : false,
+      source: visit.source ? !OPTIONS.slice(0, -1).includes(visit.source) : false,
+      meetingWith: visit.meetingWith ? !OPTIONS.slice(0, -1).includes(visit.meetingWith) : false,
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingVisit(null);
+    setFormData({
+      clientName: "",
+      companyName: "",
+      segment: "",
+      contactNumber: "",
+      alternativeNumber: "",
+      area: "",
+      referenceBy: "",
+      source: "",
+      meetingWith: "",
+      meetingDate: "",
+      revisitDates: [],
+    });
+    setShowOtherInput({
+      segment: false,
+      referenceBy: false,
+      source: false,
+      meetingWith: false,
+    });
+  };
+
   useEffect(() => {
     fetchVisits();
   }, []);
@@ -338,23 +426,35 @@ const VisitForm = () => {
     }
   };
 
-  const filteredVisits = visits.filter(v => {
-    const matchesSearch = 
-      v.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      v.contactNumber.toString().includes(searchTerm);
-    
-    const matchesSegment = filterSegment === "All" || v.segment === filterSegment;
-    
-    let matchesDate = true;
-    if (dateRange.start) {
-      matchesDate = matchesDate && new Date(v.meetingDate) >= new Date(dateRange.start);
-    }
-    if (dateRange.end) {
-      matchesDate = matchesDate && new Date(v.meetingDate) <= new Date(dateRange.end);
-    }
-    
-    return matchesSearch && matchesSegment && matchesDate;
-  });
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [searchTerm, filterSegment, dateRange]);
+
+  const filteredVisits = React.useMemo(() => {
+    return visits.filter(v => {
+      const matchesSearch = 
+        v.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        v.contactNumber.toString().includes(searchTerm);
+      
+      const matchesSegment = filterSegment === "All" || v.segment === filterSegment;
+      
+      let matchesDate = true;
+      if (dateRange.start) {
+        matchesDate = matchesDate && new Date(v.meetingDate) >= new Date(dateRange.start);
+      }
+      if (dateRange.end) {
+        matchesDate = matchesDate && new Date(v.meetingDate) <= new Date(dateRange.end);
+      }
+      
+      return matchesSearch && matchesSegment && matchesDate;
+    });
+  }, [visits, searchTerm, filterSegment, dateRange]);
+
+  const visibleVisits = React.useMemo(() => {
+    return filteredVisits.slice(0, visibleCount);
+  }, [filteredVisits, visibleCount]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -392,43 +492,38 @@ const VisitForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.contactNumber && formData.contactNumber.length !== 10) {
+    if (formData.contactNumber && String(formData.contactNumber).length !== 10) {
       alert("Primary contact number must be exactly 10 digits.");
       return;
     }
     setLoading(true);
     try {
-      await axios.post(API_BASE_URL, formData);
-      alert("Visit added successfully!");
-      setFormData({
-        clientName: "",
-        companyName: "",
-        segment: "",
-        contactNumber: "",
-        alternativeNumber: "",
-        area: "",
-        referenceBy: "",
-        source: "",
-        meetingWith: "",
-        meetingDate: "",
-        revisitDates: [],
-      });
+      if (editingVisit) {
+        await axios.patch(`${API_BASE_URL}/${editingVisit._id}`, formData);
+        alert("Visit updated successfully!");
+        cancelEdit();
+      } else {
+        await axios.post(API_BASE_URL, formData);
+        alert("Visit added successfully!");
+        setFormData({
+          clientName: "",
+          companyName: "",
+          segment: "",
+          contactNumber: "",
+          alternativeNumber: "",
+          area: "",
+          referenceBy: "",
+          source: "",
+          meetingWith: "",
+          meetingDate: "",
+          revisitDates: [],
+        });
+      }
       fetchVisits();
     } catch (err) {
-      alert(err.response?.data?.error || "Error adding visit");
+      alert(err.response?.data?.error || "Error saving visit");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleUpdate = async (updatedData) => {
-    try {
-      await axios.patch(`${API_BASE_URL}/${updatedData._id}`, updatedData);
-      alert("Record updated successfully!");
-      setEditingVisit(null);
-      fetchVisits();
-    } catch (err) {
-      alert("Error updating record.");
     }
   };
 
@@ -452,6 +547,7 @@ const VisitForm = () => {
 
   return (
     <div className="visit-form-container">
+      <style dangerouslySetInnerHTML={{ __html: MOBILE_RESPONSIVE_STYLE }} />
       <div className="visit-form-header">
         <h1>Visit Data Form</h1>
       </div>
@@ -467,7 +563,20 @@ const VisitForm = () => {
               <label>Company Name</label>
               <input type="text" name="companyName" value={formData.companyName} onChange={handleChange} />
             </div>
-            <CustomSelect label="Segment" name="segment" value={formData.segment} options={SEGMENTS} onChange={handleChange} />
+            <div className="form-group">
+              <CustomSelect label="Category" name="segment" value={formData.segment} options={SEGMENTS} onChange={handleSelectChange} />
+              {showOtherInput.segment && (
+                <input 
+                  type="text" 
+                  name="segment" 
+                  value={formData.segment} 
+                  onChange={handleChange} 
+                  placeholder="Enter custom category" 
+                  style={{ marginTop: '0.5rem' }} 
+                  required 
+                />
+              )}
+            </div>
             <div className="form-group">
               <label>Contact Number (10 Digits)</label>
               <input 
@@ -475,9 +584,9 @@ const VisitForm = () => {
                 name="contactNumber" 
                 value={formData.contactNumber} 
                 onChange={handleChange}
-                className={formData.contactNumber && formData.contactNumber.length !== 10 ? "input-error" : ""}
+                className={formData.contactNumber && String(formData.contactNumber).length !== 10 ? "input-error" : ""}
               />
-              {formData.contactNumber && formData.contactNumber.length !== 10 && (
+              {formData.contactNumber && String(formData.contactNumber).length !== 10 && (
                 <span className="error-hint">Must be exactly 10 digits</span>
               )}
             </div>
@@ -489,9 +598,48 @@ const VisitForm = () => {
               <label>Area</label>
               <input type="text" name="area" value={formData.area} onChange={handleChange} />
             </div>
-            <CustomSelect label="Reference By" name="referenceBy" value={formData.referenceBy} options={OPTIONS} onChange={handleChange} />
-            <CustomSelect label="Source" name="source" value={formData.source} options={OPTIONS} onChange={handleChange} />
-            <CustomSelect label="Meeting With" name="meetingWith" value={formData.meetingWith} options={OPTIONS} onChange={handleChange} />
+            <div className="form-group">
+              <CustomSelect label="Reference By" name="referenceBy" value={formData.referenceBy} options={OPTIONS} onChange={handleSelectChange} />
+              {showOtherInput.referenceBy && (
+                <input 
+                  type="text" 
+                  name="referenceBy" 
+                  value={formData.referenceBy} 
+                  onChange={handleChange} 
+                  placeholder="Enter custom reference by" 
+                  style={{ marginTop: '0.5rem' }} 
+                  required 
+                />
+              )}
+            </div>
+            <div className="form-group">
+              <CustomSelect label="Source" name="source" value={formData.source} options={OPTIONS} onChange={handleSelectChange} />
+              {showOtherInput.source && (
+                <input 
+                  type="text" 
+                  name="source" 
+                  value={formData.source} 
+                  onChange={handleChange} 
+                  placeholder="Enter custom source" 
+                  style={{ marginTop: '0.5rem' }} 
+                  required 
+                />
+              )}
+            </div>
+            <div className="form-group">
+              <CustomSelect label="Meeting With" name="meetingWith" value={formData.meetingWith} options={OPTIONS} onChange={handleSelectChange} />
+              {showOtherInput.meetingWith && (
+                <input 
+                  type="text" 
+                  name="meetingWith" 
+                  value={formData.meetingWith} 
+                  onChange={handleChange} 
+                  placeholder="Enter custom meeting with" 
+                  style={{ marginTop: '0.5rem' }} 
+                  required 
+                />
+              )}
+            </div>
             <CustomDatePicker label="Meeting Date" name="meetingDate" value={formData.meetingDate} onChange={handleChange} />
 
             <div className="revisit-dates-section">
@@ -516,10 +664,17 @@ const VisitForm = () => {
           </div>
         </div>
 
-        <button type="submit" className="submit-btn" disabled={loading}>
-          {loading ? "PROCESSING..." : "Complete Visit Entry"}
-          <div className="btn-icon">→</div>
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem' }}>
+          <button type="submit" className="submit-btn" disabled={loading} style={{ flex: 1, marginTop: 0 }}>
+            {loading ? "PROCESSING..." : editingVisit ? "UPDATE RECORD" : "Complete Visit Entry"}
+            <div className="btn-icon">→</div>
+          </button>
+          {editingVisit && (
+            <button type="button" className="submit-btn" onClick={cancelEdit} style={{ width: 'auto', background: '#ef4444', marginTop: 0, paddingLeft: '2rem', paddingRight: '2rem' }}>
+              Cancel Edit
+            </button>
+          )}
+        </div>
       </form>
 
       <div className="filters-section-container">
@@ -538,7 +693,7 @@ const VisitForm = () => {
           </div>
           
           <div className="filter-group-tier">
-            <label className="filter-label">Tier</label>
+            <label className="filter-label">Category</label>
             <CustomSelect 
               minimal
               name="segmentFilter" 
@@ -582,71 +737,36 @@ const VisitForm = () => {
             <div className="spinner-ring"></div>
             <span>Fetching visit records...</span>
           </div>
-        ) : filteredVisits.length === 0 ? (
+        ) : visibleVisits.length === 0 ? (
           <div className="no-cards-placeholder">
             No records found matching your filters.
           </div>
         ) : (
-          filteredVisits.map((v) => (
-            <div key={v._id} className="visit-card">
-              <div className="card-top-row">
-                <div className="card-client-info">
-                  <h4>{toTitleCase(v.clientName)}</h4>
-                  <p>{toTitleCase(v.companyName) || "No Company"}</p>
-                </div>
-                <span className="card-badge-id">REC_{v.srNo}</span>
-              </div>
-              
-              <div className="card-details-grid">
-                <div className="detail-item">
-                  <span className="detail-label">Segment</span>
-                  <span className="detail-value">{v.segment}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Contact</span>
-                  <span className="detail-value">{maskPhone(v.contactNumber)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Location / Area</span>
-                  <span className="detail-value">{v.area || "N/A"}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Source</span>
-                  <span className="detail-value">{v.source || "Direct"}</span>
-                </div>
-              </div>
-
-              <div className="card-footer-new">
-                <div className="footer-date-row">
-                  <span className="calendar-icon">{SVG_CALENDAR}</span>
-                  <span>Visit Date: {new Date(v.meetingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                </div>
-                <div className="footer-actions-row">
-                  {v.revisitDates && v.revisitDates.length > 0 ? (
-                    <span className="footer-pill-badge">{v.revisitDates.length} Follow-ups</span>
-                  ) : (
-                    <span className="footer-pill-badge empty">No Follow-ups</span>
-                  )}
-                  <button className="edit-record-btn" onClick={() => setEditingVisit(v)}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '6px' }}>
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                    Edit Record
-                  </button>
-                </div>
-              </div>
-            </div>
+          visibleVisits.map((v) => (
+            <VisitCard 
+              key={v._id} 
+              visit={v} 
+              onEdit={startEdit} 
+              maskPhone={maskPhone} 
+              toTitleCase={toTitleCase} 
+              SVG_CALENDAR={SVG_CALENDAR} 
+            />
           ))
         )}
+        
+        {filteredVisits.length > visibleCount && (
+          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
+            <button 
+              type="button"
+              className="submit-btn" 
+              onClick={() => setVisibleCount(prev => prev + 20)}
+              style={{ width: 'auto', padding: '0.8rem 2.5rem', background: 'var(--accent-primary)', fontSize: '0.9rem' }}
+            >
+              Load More Records ({filteredVisits.length - visibleCount} remaining)
+            </button>
+          </div>
+        )}
       </div>
-
-      {editingVisit && (
-        <EditModal 
-          visit={editingVisit} 
-          onUpdate={handleUpdate} 
-          onClose={() => setEditingVisit(null)} 
-        />
-      )}
     </div>
   );
 };
